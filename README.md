@@ -18,6 +18,8 @@ The Ringotel Feature Side App integrates with FusionPBX to help administrators:
 
 This streamlines user management for those using both FusionPBX and Ringotel.
 
+**In Integration tab, we currently have the Bandwidth integration feature. We may add more options later, or you can add new ones yourself.**
+
 #### **Before accessing the Ringotel application page**, **update permissions and default settings** in FusionPBX. This ensures proper user access and module functionality.
 
 ![ringotel default settingsd](https://github.com/user-attachments/assets/8437e08e-6f79-4fe2-8857-fd9a80068e99)

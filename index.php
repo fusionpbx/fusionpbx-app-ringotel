@@ -63,9 +63,9 @@ function getLessThan30($str, $prefix)
 //additional includes
 require_once "resources/paging.php";
 
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/resources/javascript/qrcode/qrcode.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/resources/javascript/html-to-image.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/resources/javascript/multiselect-dropdown.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/qrcode/qrcode.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/html-to-image.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/multiselect-dropdown.js'></script>\n";
 
 // ORG INIT ERROR
 echo '	<div id="not_exist_organization_note" class="alert alert-warning alert-dismissible fade show" style="display: none;" role="alert">	';

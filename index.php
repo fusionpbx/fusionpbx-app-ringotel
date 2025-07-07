@@ -3896,7 +3896,7 @@ echo '</style>';
 									username: result.username,
 									password: result.password
 								}),
-								image: "<?php echo PROJECT_PATH . "/app/ringotel/assets/images/180x180.svg" ?>",
+								image: "<?php echo PROJECT_PATH . "/app/ringotel/resources/images/180x180.svg" ?>",
 								imageOptions: {
 									crossOrigin: "anonymous",
 									margin: 30,

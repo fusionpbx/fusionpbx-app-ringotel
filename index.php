@@ -395,7 +395,7 @@ echo '	      </div>';
 // Get List Of Extensions
 $sql = "    select * from v_extensions  ";
 $sql .= "    where domain_uuid = :domain_uuid ";
-$sql .= "    order by extension::int asc ";
+$sql .= "    order by extension asc ";
 $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
 $db = new database;
 $extensions = $db->select($sql, $parameters);

@@ -256,7 +256,7 @@ class RingotelClass
                     }
                 }
                 $user = array(
-                    "name" => $ext_find['effective_caller_id_name'],
+                    "name" => !empty($ext_find['effective_caller_id_name']) ? $ext_find['effective_caller_id_name'] : $ext_find['extension'],
                     "domain" => $param['orgdomain'],
                     "branchname" => $param['branchname'],
                     "status" => $item['active'] == 'true' ? 1 : 0,
@@ -303,7 +303,7 @@ class RingotelClass
 
         unset($sql, $db, $parameters);
         if (isset($extension['extension_uuid'])) {
-            $param["name"] = $extension['effective_caller_id_name'];
+            $param["name"] = !empty($extension['effective_caller_id_name']) ? $extension['effective_caller_id_name'] : $extension['extension'];
 
             //main
             $server_output = $this->api->updateUser($param);
@@ -447,7 +447,7 @@ class RingotelClass
         unset($sql, $db, $parameters);
 
         if (isset($extension['extension_uuid'])) {
-            $param["name"] = $extension['effective_caller_id_name'];
+            $param["name"] = !empty($extension['effective_caller_id_name']) ? $extension['effective_caller_id_name'] : $extension['extension'];
             $param["extension"] = isset($_REQUEST['extension']) ? $_REQUEST['extension'] : $extension['extension'];
             $param["email"] = $_REQUEST['email'];
             $param["username"] = $extension['username'];

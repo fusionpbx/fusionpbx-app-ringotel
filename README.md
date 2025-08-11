@@ -6,7 +6,7 @@ https://github.com/user-attachments/assets/cab7ccd9-1b0b-4d2e-9a7f-adf9d9a02955
 
 Install Ringotel from the command line on your server
 ```
-cd /var/www/fusionpbx
+cd /var/www/fusionpbx/app
 git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git ringotel
 git config --global --add safe.directory /var/www/fusionpbx/app/ringotel
 php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions

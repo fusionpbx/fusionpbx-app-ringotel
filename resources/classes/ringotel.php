@@ -695,11 +695,17 @@ class RingotelClass
         $param = array(
             "id" => $_REQUEST['orgid'],
             "params" => array(
-                "emailcc" => $this->organization_default_emailcc,
-                "tags" => array(0 => isset($_REQUEST['tag']) ? $_REQUEST['tag'] : $_SESSION['ringotel']['server_name']['text'])
+                "emailcc" => $this->organization_default_emailcc
             )
         );
 
+        // Conditionally add "tags" to the organization
+        if ($_REQUEST['tag']) {
+            $param['params']['tags'][] = $_REQUEST['tag'];
+        } else if (isset($_SESSION['ringotel']['server_name']['text']) && !empty($_SESSION['ringotel']['server_name']['text'])) {
+            $param['params']['tags'][] = $_SESSION['ringotel']['server_name']['text'];
+        }
+        
         // additionals variables
         if ($_REQUEST['packageid']) {
             $param['packageid'] = intval($_REQUEST['packageid']);

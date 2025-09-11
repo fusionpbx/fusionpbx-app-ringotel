@@ -28,9 +28,9 @@ class curl_ringotel {
         }
     }
 
-	public function request($api, $method, $parameters, $headers = null) {
-		$mh = curl_multi_init();
-		$ch = curl_init($api);
+    public function request($api, $method, $parameters, $headers = null) {
+        $ch = curl_init($api);
+
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_ENCODING, '');
 		curl_setopt($ch, CURLOPT_MAXREDIRS, 1);
@@ -38,40 +38,31 @@ class curl_ringotel {
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-		if (!empty($this->headers)) {
-			curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
-		}
-		if (!empty($headers)) {
-			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-		}
-		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
-		if (!empty($parameters) > 0) {
-			curl_setopt($ch, CURLOPT_POSTFIELDS, $parameters);
-		}
-        curl_multi_add_handle($mh, $ch);
-        
-        $active = null;
-        do {
-            curl_multi_exec($mh, $active);
-        } while ($active);
+        if (!empty($this->headers)) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
+        }
+        if (!empty($headers)) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
+
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if (!empty($parameters)) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $parameters);
+        }
     
-        $response = curl_multi_getcontent($ch);
+        $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     
         if (curl_errno($ch)) {
             $errorMessage = 'Curl error: ' . curl_error($ch);
-            curl_multi_remove_handle($mh, $ch);
             curl_close($ch);
-            curl_multi_close($mh);
             throw new \RuntimeException($errorMessage);
         }
     
-        curl_multi_remove_handle($mh, $ch);
         curl_close($ch);
-        curl_multi_close($mh);
-
         return $this->handleResponse($httpCode, $response);
-	}
+    }
+
 
     public function post($api, $parameters, $headers = null) {
         return $this->request($api, 'POST', json_encode($parameters), $headers);

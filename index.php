@@ -60,6 +60,8 @@ function getLessThan30($str, $prefix)
 	}
 }
 
+$settings = new settings(["domain_uuid" => $_SESSION['domain_uuid'], "user_uuid" => $_SESSION['user_uuid']]);
+
 //additional includes
 require_once "resources/paging.php";
 
@@ -323,10 +325,10 @@ echo '			<div class="input-group mb-3" style="flex-direction: row;">';
 echo '			  <div class="input-group-prepend">';
 echo '			    <span class="input-group-text" id="basic-addon1">Domain name</span>';
 echo '			  </div>';
-$default_domain_unique_name = getLessThan30(explode('.', $_SESSION['domain_name'])[0], isset($_SESSION['ringotel']['domain_name_postfix']['text']) ? ('-'.$_SESSION['ringotel']['domain_name_postfix']['text']) : '-ringotel');
+$default_domain_unique_name = getLessThan30(explode('.', $_SESSION['domain_name'])[0], $settings->get('ringotel', 'domain_name_postfix', '-ringotel'));
 echo '			  <input type="text" class="form-control" id="domain_unique_name" placeholder="Unique Organization Domain" aria-label="Unique Organization Domain" value=' . $default_domain_unique_name . '>';
 echo '			  <div class="input-group-append">';
-echo '			    <span class="input-group-text" id="basic-addon2">'.(isset($_SESSION['ringotel']['domain_name_postfix']['text']) ? ('-'.$_SESSION['ringotel']['domain_name_postfix']['text']) : '-ringotel').'</span>';
+echo '			    <span class="input-group-text" id="basic-addon2">'.($settings->get('ringotel', 'domain_name_postfix', '-ringotel')).'</span>';
 echo '			</div>';
 echo '	      </div>';
 echo '	      <div class="modal-footer">';
@@ -361,7 +363,7 @@ echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
 echo '			    <div class="input-group-text" id="basic-addon1">Domain or IP address</div>';
 echo '			  </div>';
-echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value=' . $_SESSION['domain_name'] . ':' . (isset($_SESSION['ringotel']['ringotel_organization_port']['text']) ? $_SESSION['ringotel']['ringotel_organization_port']['text'] : '5070') . '>';
+echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value=' . $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) . '>';
 echo '			</div>';
 echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
@@ -3154,7 +3156,7 @@ echo '</style>';
 		$('#integration_create').attr('disabled', true);
 		// Set init Values
 		$('#domain_unique_name').val('<?php echo $default_domain_unique_name ?>');
-		$('#connection_domain').val('<?php echo $_SESSION['domain_name'] . ':' . (isset($_SESSION['ringotel']['ringotel_organization_port']['text']) ? $_SESSION['ringotel']['ringotel_organization_port']['text'] : '5070') ?>');
+		$('#connection_domain').val('<?php echo $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) ?>');
 		$('#maxregs').val('1');
 
 		return $.ajax({

@@ -691,8 +691,8 @@ class ringotel {
 		// Conditionally add "tags" to the organization
         if ($queryParams['tag']) {
             $param['params']['tags'][] = $queryParams['tag'];
-        } else if (isset($_SESSION['ringotel']['server_name']['text']) && !empty($_SESSION['ringotel']['server_name']['text'])) {
-            $param['params']['tags'][] = $_SESSION['ringotel']['server_name']['text'];
+        } else if (!empty($this->settings->get('ringotel', 'server_name', null))) {
+            $param['params']['tags'][] = $this->settings->get('ringotel', 'server_name', null);
         }
 
 		// additionals variables
@@ -749,10 +749,10 @@ class ringotel {
 	public function create_integration($queryParams) {
 		$param = array(
 			'profileid' => $queryParams['profileid'],
-			'Username' => $_SESSION['ringotel']['ringotel_bandwidth_integration_username']['text'],
-			'Password' => $_SESSION['ringotel']['ringotel_bandwidth_integration_password']['text'],
-			'Account_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_account_id']['text'],
-			'Application_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_application_id']['text'],
+			'Username' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_username', ''),
+			'Password' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_password', ''),
+			'Account_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_account_id',  ''),
+			'Application_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_application_id', ''),
 		);
 		//main
 		return $this->api->create_integration($param);
@@ -765,10 +765,10 @@ class ringotel {
 	public function delete_integration($queryParams) {
 		$param = array(
 			'profileid' => $queryParams['profileid'],
-			'Username' => $_SESSION['ringotel']['ringotel_bandwidth_integration_username']['text'],
-			'Password' => $_SESSION['ringotel']['ringotel_bandwidth_integration_password']['text'],
-			'Account_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_account_id']['text'],
-			'Application_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_application_id']['text'],
+			'Username' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_username', ''),
+			'Password' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_password', ''),
+			'Account_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_account_id', ''),
+			'Application_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_application_id', ''),
 		);
 		//main
 		return $this->api->delete_integration($param);
@@ -937,6 +937,3 @@ class ringotel {
 	//////////////////////////////////////////////////////////////////////////////////////
 
 }
-
-// TODO
-// change the $_session for setting to settings class

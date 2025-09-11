@@ -30,9 +30,11 @@
     Mark J Crane <markjcrane@fusionpbx.com>
 */
 
-require_once dirname(__DIR__, 2) . "/resources/require.php";
-require_once "resources/check_auth.php";
-require_once "app/ringotel/resources/classes/ringotel.php";
+// load framework files
+require_once dirname(__DIR__, 2) . '/resources/require.php';
+
+// check auth
+require_once dirname(__DIR__, 2) . '/resources/check_auth.php';
 
 // check permissions
 if (permission_exists('ringotel')) {
@@ -42,180 +44,61 @@ if (permission_exists('ringotel')) {
     exit;
 }
 
-// Get Current Domain Organization
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'getOrganization') {
-    $method = new RingotelClass(null);
-    $method->getOrganization(null);
+// func lib
+function sanitizeInput($value) {
+    if (is_array($value)) {
+        return array_map('sanitizeInput', $value);
+    } else {
+        return htmlspecialchars(strip_tags($value));
+    }
 }
 
-// Create Organization
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'createOrganization') {
-    $method = new RingotelClass(null);
-    $method->createOrganization();
+// Function for define and sanitize QUERY-params
+// ...simple adding the others method for sanitazing
+$queryParams = [];
+
+if (!empty($_GET)) {
+    foreach ($_GET as $key => $value) {
+        $queryParams[$key] = sanitizeInput($value);
+    }
+}
+if (!empty($_POST)) {
+    foreach ($_POST as $key => $value) {
+        $queryParams[$key] = sanitizeInput($value);
+    }
 }
 
-// Delete Organization
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deleteOrganization') {
-    $method = new RingotelClass(null);
-    $method->deleteOrganization();
+if (!permission_exists('ringotel') || empty($queryParams['method'])) {
+    die();
 }
+// Extract the requested method
+$object_method = $queryParams['method'];
+$valid_methods = [
+    'get_organization', 'create_organization', 'delete_organization',
+    'get_branches', 'create_branch', 'delete_branch',
+    'get_users', 'create_users', 'delete_user', 'update_user',
+    'resync_names', 'resync_password', 'detach_user', 'users_state',
+    'update_branch_with_default_settings', 'update_branch_with_updated_settings',
+    'update_organization_with_default_settings', 'update_parks_with_updated_settings',
+    'activate_user', 'deactivate_user', 'reset_user_password', 'switch_organization_mode',
+    'create_integration', 'delete_integration', 'get_integration',
+    'get_sms_trunk', 'create_sms_trunk', 'update_sms_trunk', 'delete_sms_trunk'
+];
 
-// Get Branch
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'getBranches') {
-    $method = new RingotelClass(null);
-    $method->getBranches(null);
-}
+$integration = in_array($object_method, $valid_methods) ? 'INTEGRATION' : null;
 
-// Create Branch
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'createBranch') {
-    $method = new RingotelClass(null);
-    $method->createBranch();
-}
+if (!empty($integration)) {
 
-// Delete Branch
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deleteBranch') {
-    $method = new RingotelClass(null);
-    $method->deleteBranch();
-}
+    $settings = new settings(["domain_uuid" => $_SESSION['domain_uuid'], "user_uuid" => $_SESSION['user_uuid']]);
+    $ringotel_api_url = $settings->get('ringotel', 'ringotel_api', $integration);
+    $ringotel_api_functions = new ringotel_api_functions($settings, $ringotel_api_url, null, null);
+    $ringotel = new ringotel($settings, $ringotel_api_functions);
+    if (method_exists($ringotel, $object_method)) {
+        $output_format_converter = new ringotel_response_output_converter();
+        echo $output_format_converter->associative_array_to_json($ringotel->{$object_method}($queryParams));
+    } else {
+        // method is not provided
+        exit();
+    }
 
-// Get Users
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'getUsers') {
-    $method = new RingotelClass(null);
-    $method->getUsers();
-}
-
-// Create User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'createUsers') {
-    $method = new RingotelClass(null);
-    $method->createUsers();
-}
-
-// Delete User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deleteUser') {
-    $method = new RingotelClass(null);
-    $method->deleteUser();
-}
-
-// Update User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateUser') {
-    $method = new RingotelClass(null);
-    $method->updateUser();
-}
-
-// re-Sync Names of User and activate them
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'reSyncNames') {
-    $method = new RingotelClass(null);
-    $method->reSyncNames();
-}
-
-// re-Sync Password of User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'reSyncPassword') {
-    $method = new RingotelClass(null);
-    $method->reSyncPassword();
-}
-
-// Detach User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'detachUser') {
-    $method = new RingotelClass(null);
-    $method->detachUser();
-}
-
-// Status Users
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'usersState') {
-    $method = new RingotelClass(null);
-    $method->usersState();
-}
-
-// update Branch With Default Settings
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateBranchWithDefaultSettings') {
-    $method = new RingotelClass(null);
-    $method->updateBranchWithDefaultSettings();
-}
-
-// update Branch With Updated Settings
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateBranchWithUpdatedSettings') {
-    $method = new RingotelClass(null);
-    $method->updateBranchWithUpdatedSettings();
-}
-
-// update Organization With Default Settings
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateOrganizationWithDefaultSettings') {
-    $method = new RingotelClass(null);
-    $method->updateOrganizationWithDefaultSettings(null);
-}
-
-// createParks With Updated Settings
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateParksWithUpdatedSettings') {
-    $method = new RingotelClass(null);
-    $method->updateParksWithUpdatedSettings();
-}
-
-// Activate User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'activateUser') {
-    $method = new RingotelClass(null);
-    $method->activateUser();
-}
-
-// Deactivate User
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deactivateUser') {
-    $method = new RingotelClass(null);
-    $method->deactivateUser();
-}
-
-// Reset User Password
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'resetUserPassword') {
-    $method = new RingotelClass(null);
-    $method->resetUserPassword();
-}
-
-// update Branch hWith Default Settings
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'switchOrganizationMode') {
-    $method = new RingotelClass(null);
-    $method->switchOrganizationMode();
-}
-
-//
-///
-//// Integrations
-
-// Create Integration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'createIntegration') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->createIntegration();
-}
-
-// Delete Integration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deleteIntegration') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->deleteIntegration();
-}
-
-// Get Integration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'getIntegration') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->getIntegration();
-}
-
-// Get Numbers Configuration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'getSMSTrunk') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->getSMSTrunk();
-}
-
-// Create Numbers Configuration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'createSMSTrunk') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->createSMSTrunk();
-}
-
-// Update Numbers Configuration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'updateSMSTrunk') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->updateSMSTrunk();
-}
-
-// Delete Numbers Configuration
-if (permission_exists('ringotel') && $_REQUEST['method'] == 'deleteSMSTrunk') {
-    $method = new RingotelClass('INTEGRATION');
-    $method->deleteSMSTrunk();
 }

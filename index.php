@@ -1035,6 +1035,7 @@ echo '</style>';
 ?>
 
 <script>
+	let ORG_ID = '';
 	////// Edit User MODAL //////
 	const modalEditUser = ({ id, accountid, domain, name, email, extension, sip_password, sip_username, auth_name, mobile, created }) => {
 		return (
@@ -1205,7 +1206,7 @@ echo '</style>';
 		// SAVE 
 		$(`.edit_user_button`).on('click', (function (el) {
 			const id = el.target.id.split('_').pop();
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// form field value
 			const name = $('#user_name_ec_input_' + id).val();
@@ -1257,7 +1258,7 @@ echo '</style>';
 
 	// Save Edited User/Extension 
 	const saveEditedUser = (id, data) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$('#edit_user_button_' + id).attr('disabled', true);
 		$('#edit_user_text_' + id).slideUp(300);
 
@@ -1411,7 +1412,7 @@ echo '</style>';
 	};
 
 	const updateConnection = (id, data) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$('#edit_connect_button_' + id).attr('disabled', true);
 		$('#edit_connect_text_' + id).slideUp(300);
 		$('#editConnectModal_button_' + id).css('pointer-events', 'none');
@@ -1514,7 +1515,7 @@ echo '</style>';
 			const formData = $(`#modal_form_edit_connection_${id}`).serializeArray();
 			// console.log('--> [edit_connect_button] --> data', formData);
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// form field value
 			const name = $('#connection_name_ec_input_' + id).val();
@@ -1671,7 +1672,7 @@ echo '</style>';
 			// Clear Style
 			$('#parks_save').removeClass('attention');
 			// Parks Number List
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			const parks_numbers_list = [...$('.user_card[data-type-code=PARK]')]?.map((park) => { return { park: park?.getAttribute('data-number'), connection: park?.getAttribute('data-branch-id'), connectionName: park?.getAttribute('data-branch-name') } });
 
@@ -1815,7 +1816,7 @@ echo '</style>';
 				$('#manage_numbers_activate_button').attr('disabled', true);
 				$('#manage_numbers_activate_text').slideUp(300);
 				$('#manage_numbers_activate_loading').slideDown(300);
-				const orgid = $('#delete_organization').attr('data-account');
+				const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 				const data = { orgid, name, number, users };
 				// console.log('[manage_numbers_activate_button] data', data);
 
@@ -2073,7 +2074,7 @@ echo '</style>';
 		// Enable sms trunk update
 		$('.sms_trunk_save').on('click', (function (e) {
 			const id = e.target.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('----> update sms trunk @id, @orgid ', id, orgid);
 
 			// Hide the save button
@@ -2148,7 +2149,7 @@ echo '</style>';
 		// Enable sms trunk update
 		$('.sms_trunk_close_updating').on('click', (function (e) {
 			const id = e.target.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('----> close updating sms trunk @id, @orgid ', id, orgid);
 
 			// Show delete and Update
@@ -2229,7 +2230,7 @@ echo '</style>';
 			$('#manageNumbersModal_button').attr('disabled', true);
 			const sms_trunk_id = e.target.getAttribute('data-id');
 			const sms_trunk_number = e.target.getAttribute('data-number');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('sms_trunk_id', sms_trunk_id);
 
 			$('#sms_trunk_delete_' + sms_trunk_id).attr('disabled', true);
@@ -2266,7 +2267,7 @@ echo '</style>';
 		// disable Button
 		$('#manageNumbersModal_button').attr('disabled', true);
 		// get smsTrunk
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$.ajax({
 			url: "/app/ringotel/service.php?method=get_sms_trunk",
 			type: "post",
@@ -2349,7 +2350,7 @@ echo '</style>';
 
 	// get Integrations uses from getOrganization function
 	const getIntegration = (parameters) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// console.log('[getIntegration] ------------> orgid', orgid);
 		$.ajax({
 			url: "/app/ringotel/service.php?method=get_integration",
@@ -2457,7 +2458,7 @@ echo '</style>';
 			const id = el.currentTarget.getAttribute('data-id');
 			const userid = el.currentTarget.getAttribute('data-userid');
 			const branchid = el.currentTarget.getAttribute('data-branch');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const data = {
 				id,
 				userid,
@@ -2692,7 +2693,7 @@ echo '</style>';
 			$('.create_extensions_text').fadeOut(300);
 			// get options from element
 			const userId = el.currentTarget.getAttribute('data');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const TYPE_CODE = $(el.currentTarget).attr('data-type-code');
 			$('#create_connect_button').attr('disabled', true);
 			$('#create_users_button').attr('disabled', true);
@@ -2727,7 +2728,7 @@ echo '</style>';
 
 					// get users list per connect
 					$('.delete_connect').map((k, item) => {
-						const orgid = item.getAttribute("data-account");
+						const orgid = item.getAttribute("data-account") || ORG_ID;
 						const branchid = item.getAttribute("data");
 
 						// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
@@ -2828,7 +2829,7 @@ echo '</style>';
 		// List of Exist Extension Reset 
 		createListExistExtensions();
 		// get orgid 
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
 		const parksUserExtensions = await getUsers(orgid);
 		// console.log('[getUsersWithUpdateElements] ------------> parksUserExtensions', parksUserExtensions);
@@ -3006,7 +3007,7 @@ echo '</style>';
 		// Bind Event Listener [Delete Connection] 
 		$(".delete_connect").on('click', (function (el) {
 			const branchId = el.currentTarget.getAttribute('data');
-			const orgId = el.currentTarget.getAttribute('data-account');
+			const orgId = el.currentTarget.getAttribute('data-account') || ORG_ID;
 			$('#create_connect_button').attr('disabled', true);
 			$('#create_users_button').attr('disabled', true);
 			$('#delete_connect_' + branchId).fadeOut(300);
@@ -3181,6 +3182,7 @@ echo '</style>';
 							$('#organization_name').text(result.name);
 							$('#organization_domain').text(result.domain);
 							$('#delete_organization').attr('data-account', result.id);
+							ORG_ID = result.id;
 							$('#delete_organization').attr('data-account-domain', result.domain);
 							$('#organization_created').text('Created: ' + new Date(result.created).toLocaleDateString());
 							$('#create_org_text').fadeIn(300);
@@ -3254,7 +3256,7 @@ echo '</style>';
 		$('#create_users_button').attr('disabled', true);
 		$('#delete_organization').fadeOut(300);
 		setTimeout(() => $('#deleting_org_loading').fadeIn(), 300);
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// DELETE ORGANIZAITION
 		$.ajax({
 			url: "/app/ringotel/service.php?method=delete_organization",
@@ -3286,7 +3288,7 @@ echo '</style>';
 		$('#create_users_button').attr('disabled', true);
 		$('#delete_organization').fadeOut(300);
 		$('.delete_connect').fadeOut(300);
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 		const maxregs = $('#maxregs').val();
 
@@ -3378,7 +3380,7 @@ echo '</style>';
 			// button for the open modal
 			$('#create_parks_modal_button').attr('disabled', true);
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			setTimeout(() => {
 				const branchid = $('#users_selector_branch_for_parks').children(":selected").attr("data-branch");
@@ -3479,7 +3481,7 @@ echo '</style>';
 
 				const branchid = $('#users_selector_branch').children(":selected").attr("data-branch");
 				const branchname = $('#users_selector_branch').children(":selected").attr("data-branch-name");
-				const orgid = $('#delete_organization').attr('data-account');
+				const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 				const orgdomain = $('#delete_organization').attr('data-account-domain');
 				$.ajax({
 					url: "/app/ringotel/service.php?method=create_users",
@@ -3558,7 +3560,7 @@ echo '</style>';
 
 	const checkStateUsers = () => {
 		calledUserStateChecker = true;
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		const connections = [...$('.connection').map((k, item) => item.getAttribute('data-id'))];
 		Promise.all(
 			connections.map(async (branchid) => {
@@ -3665,7 +3667,7 @@ echo '</style>';
 		// 		$('#email_for_reset_password').removeClass('alert-danger');
 		// 	}
 		const extension = $('#email_for_reset_password').attr('data-extension');
-		const orgid = $('#email_for_reset_password').attr('data-orgid');
+		const orgid = $('#email_for_reset_password').attr('data-orgid') || ORG_ID;
 		const id = $('#email_for_reset_password').attr('data-id');
 		const email = $('#email_for_reset_password').val();
 		resetPassword({ extension, orgid, id, email });
@@ -3681,7 +3683,7 @@ echo '</style>';
 		// 	if ($('#email_for_user').hasClass('alert-danger')) {
 		// 		$('#email_for_user').removeClass('alert-danger');
 		// 	}
-		const orgid = $('#email_for_user').attr('data-orgid');
+		const orgid = $('#email_for_user').attr('data-orgid') || ORG_ID;
 		const id = $('#email_for_user').attr('data-id');
 		const extension = $('#email_for_user').attr('data-extension');
 		const email = $('#email_for_user').val();
@@ -4091,7 +4093,7 @@ echo '</style>';
 		$(".resetPassword").on('click', (function (el) {
 			const id = el.currentTarget.getAttribute('data-id');
 			const extension = el.currentTarget.getAttribute('data-extension');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			$('#email_for_reset_password').attr('data-id', id);
 			$('#email_for_reset_password').attr('data-extension', extension);
 			$('#email_for_reset_password').attr('data-orgid', orgid);
@@ -4105,7 +4107,7 @@ echo '</style>';
 		$(".activateUser").on('click', (function (el) {
 			const id = el.currentTarget.getAttribute('data-id');
 			const extension = el.currentTarget.getAttribute('data-extension');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			$('#email_for_user').attr('data-id', id);
 			$('#email_for_user').attr('data-extension', extension);
 			$('#email_for_user').attr('data-orgid', orgid);
@@ -4121,7 +4123,7 @@ echo '</style>';
 			$(el.currentTarget).children('svg').css('animation', 'sync 2s infinite');
 
 			const id = el.currentTarget.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const extension = el.currentTarget.getAttribute('data-extension');
 
 			// update Password of User 
@@ -4151,7 +4153,7 @@ echo '</style>';
 		const all_ue = [...exist_extensions_list];
 
 		// Organization Id
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 		// All Requsts
 		return await Promise.all(
@@ -4196,7 +4198,7 @@ echo '</style>';
 			const all_ue = [...exist_users_list, ...exist_extensions_list];
 
 			// Organization Id
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// Replace Text
 			$('#resync_names').text('Loading...');
@@ -4275,7 +4277,7 @@ echo '</style>';
 			const all_ue = [...exist_users_list, ...exist_extensions_list];
 
 			// Organization Id
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// Replace Text
 			$('#resync_password').text('Loading...');
@@ -4321,7 +4323,7 @@ echo '</style>';
 			const id = el.currentTarget.getAttribute('data-id');
 			$(el.currentTarget).children('i').css('animation', 'plug 3s infinite');
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const data = {
 				orgid,
 				id,

@@ -79,6 +79,33 @@ echo "    }";
 echo "    div.card {";
 echo "        overflow-x: unset;";
 echo "    }";
+echo "    .indicator-green {";
+echo "    	box-shadow: inset rgb(64 217 88) 0px 0px 4px 2px;";
+echo "    	border-radius: 2rem;";
+echo "    	margin: 0rem 0.2rem;";
+echo "    	width: 10px;";
+echo "    	height: 10px;";
+echo "    	text-align: center;";
+echo "    	display: inline-block;";
+echo "    }";
+echo "    .indicator-yellow {";
+echo "    	box-shadow: inset rgb(202 203 8) 0px 0px 4px 2px;";
+echo "    	border-radius: 2rem;";
+echo "    	margin: 0rem 0.2rem;";
+echo "    	width: 10px;";
+echo "    	height: 10px;";
+echo "    	text-align: center;";
+echo "    	display: inline-block;";
+echo "    }";
+echo "    .indicator-red {";
+echo "    	box-shadow: inset rgb(217 64 64 / 55%) 0px 0px 4px 2px;";
+echo "    	border-radius: 2rem;";
+echo "    	margin: 0rem 0.2rem;";
+echo "    	width: 10px;";
+echo "    	height: 10px;";
+echo "    	text-align: center;";
+echo "    	display: inline-block;";
+echo "    }";
 echo "</style>";
 ?>
 <script>
@@ -87,7 +114,7 @@ echo "</style>";
     if ('<?php echo boolval($reject_ringotel) ?>') {
 
         const getOrganizationId = async () => await $.ajax({
-        		url: "/app/ringotel/service.php?method=getOrganization",
+        		url: "/app/ringotel/service.php?method=get_organization",
         		type: "get",
         		cache: true
             }).then((response) => {
@@ -97,7 +124,7 @@ echo "</style>";
         
         const getRingotelUsers = async (orgid) => 
             await $.ajax({
-        		url: "/app/ringotel/service.php?method=getUsers",
+        		url: "/app/ringotel/service.php?method=get_users",
         		type: "get",
         		cache: true,
         		data: {
@@ -262,7 +289,7 @@ echo "</style>";
         function deleteUserRequest(orgid, userId) {
             return new Promise((resolve, reject) => {
                 $.ajax({
-				    url: "/app/ringotel/service.php?method=deleteUser",
+				    url: "/app/ringotel/service.php?method=delete_user",
 				    type: "get",
 				    cache: true,
 				    data: {

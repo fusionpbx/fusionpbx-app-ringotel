@@ -21,6 +21,8 @@ class curl_ringotel {
                 return ['success' => false, 'error' => 'Not Modified (304)'];
             case 404:
                 return ['success' => false, 'error' => 'Not Found (404)'];
+            case 500:
+                return ['success' => false, 'error' => 'Error: ' . (!empty(json_decode($response, true)['error']['message']) ? (json_decode($response, true)['error']['message'] . ' ('.$httpCode.')') : ('('.$httpCode.')'))];
             case 501:
                 return ['success' => false, 'error' => 'Not Implemented (501)'];
             default:

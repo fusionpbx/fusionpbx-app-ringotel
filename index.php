@@ -1295,8 +1295,8 @@ echo '</style>';
 
 	////// Connection MODAL //////
 	const modalEditConnection = ({ id, accountid, name, domain, country, address, created, provision: { protocol, inboundFormat, noverify, nosrtp, multitenant, maxregs } }) => {
-		const address_only = address.split(':')[0];
-		const port_only = address.split(':')[1];
+		const address_only = address?.split(':')[0];
+		const port_only = address?.split(':')[1];
 		return (
 			`
 			<div class="modal hide fade" id="editConnectionModal_${id}" tabindex="-1" role="dialog" aria-labelledby="editConnectionModalLabel_${id}" aria-hidden="true" style="display: none;">

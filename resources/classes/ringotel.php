@@ -227,7 +227,13 @@ class ringotel {
 		if (!empty($queryParams['branchid'])) {
 			$param['branchid'] = $queryParams['branchid'];
 		}
-		$param['orgid'] = $queryParams['orgid'];
+		//default param
+		if (!empty($queryParams['orgid'])) {
+			$param['orgid'] = $queryParams['orgid'];
+		} else {
+			$org = $this->get_organization($_SESSION['domain_name']);
+			$param['orgid'] = $org['result']['id'];
+		}
 
 		//main
 		$server_output = $this->api->get_users($param, null, null);
@@ -430,7 +436,7 @@ class ringotel {
 
 		$users = $this->get_users($queryParams);
 
-		if (!empty($users['result'])) {
+		if (!empty($users['result']) && !empty($queryParams['name'])) {
 			$selected_user = array_filter(
 				$users['result'],
 				function ($v, $k) use ($queryParams) {

@@ -2802,8 +2802,7 @@ echo '</style>';
 					type: "get",
 					cache: true,
 					data: {
-						orgid,
-						// branchid
+						orgid
 					}
 				}).then((response) => {
 					checkErrors(response);

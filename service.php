@@ -82,7 +82,8 @@ $valid_methods = [
     'update_organization_with_default_settings', 'update_parks_with_updated_settings',
     'activate_user', 'deactivate_user', 'reset_user_password', 'switch_organization_mode',
     'create_integration', 'delete_integration', 'get_integration',
-    'get_sms_trunk', 'create_sms_trunk', 'update_sms_trunk', 'delete_sms_trunk'
+    'get_sms_trunk', 'create_sms_trunk', 'update_sms_trunk', 'delete_sms_trunk',
+    'update_extension_name'
 ];
 
 $integration = in_array($object_method, $valid_methods) ? 'INTEGRATION' : null;

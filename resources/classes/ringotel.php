@@ -127,7 +127,10 @@ class ringotel {
 
 		$filtered_organization = array_filter(
 				$server_output['result'],
-				function ($v, $k) use ($DomainNameLessThan30) {
+				function ($v, $k) use ($DomainNameLessThan30, $ringotelOverrideOrganizationNamem, $ringotelOverrideUniqueOrganizationDomain) {
+					if ($ringotelOverrideOrganizationName === $v["name"] || $ringotelOverrideUniqueOrganizationDomain === $v["domain"]) {
+						return true;
+					}
 					if (
 							$DomainNameLessThan30 === $v["domain"] ||
 							$_SESSION['domain_name'] === $v["name"] ||
@@ -137,9 +140,6 @@ class ringotel {
 					) {
 						return true;
 					}
-					// if ($ringotelOverrideOrganizationName == $v["name"] || $ringotelOverrideUniqueOrganizationDomain == $v["domain"]) {
-					// 	return true;
-					// }
 				},
 				ARRAY_FILTER_USE_BOTH
 		);
@@ -224,7 +224,9 @@ class ringotel {
 
 		$param = array();
 		//default param
-		$param['branchid'] = $queryParams['branchid'];
+		if (!empty($queryParams['branchid'])) {
+			$param['branchid'] = $queryParams['branchid'];
+		}
 		$param['orgid'] = $queryParams['orgid'];
 
 		//main
@@ -384,7 +386,7 @@ class ringotel {
 	/**
 	 * UPDATE USER
 	 */
-	public function update_user($queryParams) {
+	public function update_user($queryParams) { 
 		$param = array();
 
 		// Default param
@@ -414,6 +416,37 @@ class ringotel {
 
 			//main
 			return $this->api->update_user($param);
+		}
+	}
+
+	/**
+	 * UPDATE USER
+	 */
+	public function update_extension_name($queryParams) { 
+		$param = array();
+
+		$org = $this->get_organization($_SESSION['domain_name']);
+		$queryParams['orgid'] = $org['result']['id'];
+
+		$users = $this->get_users($queryParams);
+
+		if (!empty($users['result'])) {
+			$selected_user = array_filter(
+				$users['result'],
+				function ($v, $k) use ($queryParams) {
+					if ($queryParams['extension'] === $v["extension"]) {
+						return true;
+					}
+				},
+				ARRAY_FILTER_USE_BOTH
+			);
+
+			$user_id = array_pop($selected_user)['id'];
+
+			if (!empty($user_id)) {
+				$queryParams['id'] = $user_id; 
+				$this->update_user($queryParams);
+			}
 		}
 	}
 

@@ -2,6 +2,30 @@
 
 https://github.com/user-attachments/assets/cab7ccd9-1b0b-4d2e-9a7f-adf9d9a02955
 
+## Ringotel Install
+
+Install Ringotel from the command line on your server
+```
+cd /var/www/fusionpbx/app
+git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git ringotel
+git config --global --add safe.directory /var/www/fusionpbx/app/ringotel
+php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions
+php /var/www/fusionpbx/core/upgrade/upgrade.php
+```
+
+**Ringotel Website**
+- Menu -> Integrations -> API Settings
+  - Webhook URL: your.domain.com/app/ringotel/webhook.php
+- Create Key
+- Save the key to use later
+
+**Your FusionPBX Server**
+- Default Settings
+  - Category: ringotel
+  - Subcategory: ringotel_token
+  - Value: Save the API Key here
+  
+
 ## 1\. Ringotel Overview
 
 The Ringotel Feature Side App integrates with FusionPBX to help administrators:

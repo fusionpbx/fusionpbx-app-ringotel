@@ -122,13 +122,12 @@ class ringotel {
 		$DomainNameLessThan30 = $this->less_than_30(explode(".", $domain_name)[0], $this->domain_name_postfix);
 
 		// Overrided settings
-		$ringotelOverrideOrganizationName = $this->settings->get('ringotel', 'ringotel_override_organization_name', null);
 		$ringotelOverrideUniqueOrganizationDomain = $this->settings->get('ringotel', 'ringotel_override_unique_organization_domain', null);
 
 		$filtered_organization = array_filter(
 				$server_output['result'],
-				function ($v, $k) use ($DomainNameLessThan30, $ringotelOverrideOrganizationNamem, $ringotelOverrideUniqueOrganizationDomain) {
-					if ($ringotelOverrideOrganizationName === $v["name"] || $ringotelOverrideUniqueOrganizationDomain === $v["domain"]) {
+				function ($v, $k) use ($DomainNameLessThan30, $ringotelOverrideUniqueOrganizationDomain) {
+					if ($ringotelOverrideUniqueOrganizationDomain === $v["domain"]) {
 						return true;
 					}
 					if (

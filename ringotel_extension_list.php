@@ -114,7 +114,7 @@ echo "</style>";
     if ('<?php echo boolval($reject_ringotel) ?>') {
 
         const getOrganizationId = async () => await $.ajax({
-        		url: "/app/ringotel/service.php?method=get_organization",
+        		url: "/app/rt/service.php?method=get_organization",
         		type: "get",
         		cache: true
             }).then((response) => {
@@ -124,7 +124,7 @@ echo "</style>";
         
         const getRingotelUsers = async (orgid) => 
             await $.ajax({
-        		url: "/app/ringotel/service.php?method=get_users",
+        		url: "/app/rt/service.php?method=get_users",
         		type: "get",
         		cache: true,
         		data: {
@@ -289,7 +289,7 @@ echo "</style>";
         function deleteUserRequest(orgid, userId) {
             return new Promise((resolve, reject) => {
                 $.ajax({
-				    url: "/app/ringotel/service.php?method=delete_user",
+				    url: "/app/rt/service.php?method=delete_user",
 				    type: "get",
 				    cache: true,
 				    data: {

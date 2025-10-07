@@ -65,9 +65,9 @@ $settings = new settings(["domain_uuid" => $_SESSION['domain_uuid'], "user_uuid"
 //additional includes
 require_once "resources/paging.php";
 
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/qrcode/qrcode.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/html-to-image.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/multiselect-dropdown.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/qrcode/qrcode.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/html-to-image.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/multiselect-dropdown.js'></script>\n";
 
 // ERROR Messages 
 echo '	<div id="error_message" class="alert alert-danger alert-dismissible fade show" style="display: none;" role="alert">	';
@@ -1265,7 +1265,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('#edit_user_loading_' + id).slideDown(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=update_user",
+				url: "/app/rt/service.php?method=update_user",
 				type: "post",
 				cache: true,
 				data,
@@ -1421,7 +1421,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('#edit_connect_loading_' + id).slideDown(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=update_branch_with_updated_settings",
+				url: "/app/rt/service.php?method=update_branch_with_updated_settings",
 				type: "post",
 				cache: true,
 				data,
@@ -1709,7 +1709,7 @@ echo '</style>';
 					};
 					console.table(' -------> data', data);
 					await $.ajax({
-						url: "/app/ringotel/service.php?method=update_parks_with_updated_settings",
+						url: "/app/rt/service.php?method=update_parks_with_updated_settings",
 						type: "get",
 						cache: true,
 						data,
@@ -1822,7 +1822,7 @@ echo '</style>';
 
 				// Create Ajax Funciton
 				$.ajax({
-					url: "/app/ringotel/service.php?method=create_sms_trunk",
+					url: "/app/rt/service.php?method=create_sms_trunk",
 					type: "post",
 					cache: true,
 					data,
@@ -1858,7 +1858,7 @@ echo '</style>';
 			setTimeout(() => {
 				$('#create_inter_loading').fadeIn();
 				$.ajax({
-					url: "/app/ringotel/service.php?method=create_integration",
+					url: "/app/rt/service.php?method=create_integration",
 					type: "get",
 					cache: true,
 					data: { profileid },
@@ -2108,7 +2108,7 @@ echo '</style>';
 				$('#sms_trunk_save_loading_' + id).fadeIn(300);
 				// Create Ajax Funciton
 				$.ajax({
-					url: "/app/ringotel/service.php?method=update_sms_trunk",
+					url: "/app/rt/service.php?method=update_sms_trunk",
 					type: "post",
 					cache: true,
 					data,
@@ -2236,7 +2236,7 @@ echo '</style>';
 			$('#sms_trunk_delete_' + sms_trunk_id).attr('disabled', true);
 
 			$.ajax({
-				url: "/app/ringotel/service.php?method=delete_sms_trunk",
+				url: "/app/rt/service.php?method=delete_sms_trunk",
 				type: "post",
 				cache: true,
 				data: { orgid, id: sms_trunk_id },
@@ -2269,7 +2269,7 @@ echo '</style>';
 		// get smsTrunk
 		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$.ajax({
-			url: "/app/ringotel/service.php?method=get_sms_trunk",
+			url: "/app/rt/service.php?method=get_sms_trunk",
 			type: "post",
 			cache: true,
 			data: { orgid },
@@ -2322,7 +2322,7 @@ echo '</style>';
 			$('#integration_service_container').slideUp();
 			const profileid = $('#delete_organization').attr('data-account');
 			$.ajax({
-				url: "/app/ringotel/service.php?method=delete_integration",
+				url: "/app/rt/service.php?method=delete_integration",
 				type: "get",
 				cache: true,
 				data: { profileid },
@@ -2353,7 +2353,7 @@ echo '</style>';
 		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// console.log('[getIntegration] ------------> orgid', orgid);
 		$.ajax({
-			url: "/app/ringotel/service.php?method=get_integration",
+			url: "/app/rt/service.php?method=get_integration",
 			type: "get",
 			cache: true,
 			data: { orgid },
@@ -2465,7 +2465,7 @@ echo '</style>';
 				orgid,
 			};
 			$.ajax({
-				url: "/app/ringotel/service.php?method=detach_user",
+				url: "/app/rt/service.php?method=detach_user",
 				type: "post",
 				cache: true,
 				data,
@@ -2701,7 +2701,7 @@ echo '</style>';
 			setTimeout(() => $('#deleting_user_loading_' + userId).fadeIn(), 300);
 			// DELETE USER
 			$.ajax({
-				url: "/app/ringotel/service.php?method=delete_user",
+				url: "/app/rt/service.php?method=delete_user",
 				type: "get",
 				cache: true,
 				data: {
@@ -2798,7 +2798,7 @@ echo '</style>';
 				$('.create_extensions_loading').fadeOut(300);
 				$('#create_users_loading').fadeIn();
 				return $.ajax({
-					url: "/app/ringotel/service.php?method=get_users",
+					url: "/app/rt/service.php?method=get_users",
 					type: "get",
 					cache: true,
 					data: {
@@ -3013,7 +3013,7 @@ echo '</style>';
 			setTimeout(() => $('#deleting_connect_loading_' + branchId).fadeIn(), 300);
 			// DELETE CONNECTION
 			$.ajax({
-				url: "/app/ringotel/service.php?method=delete_branch",
+				url: "/app/rt/service.php?method=delete_branch",
 				type: "get",
 				cache: true,
 				data: {
@@ -3067,7 +3067,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('.create_connect_loading').fadeIn();
 			$.ajax({
-				url: "/app/ringotel/service.php?method=get_branches",
+				url: "/app/rt/service.php?method=get_branches",
 				type: "get",
 				cache: true,
 				data: {
@@ -3160,7 +3160,7 @@ echo '</style>';
 		$('#maxregs').val('1');
 
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=get_organization",
+			url: "/app/rt/service.php?method=get_organization",
 			type: "get",
 			cache: true,
 			success: function (response) {
@@ -3224,7 +3224,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('#create_org_loading').fadeIn();
 			$.ajax({
-				url: "/app/ringotel/service.php?method=create_organization",
+				url: "/app/rt/service.php?method=create_organization",
 				type: "get",
 				cache: true,
 				data: {
@@ -3258,7 +3258,7 @@ echo '</style>';
 		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// DELETE ORGANIZAITION
 		$.ajax({
-			url: "/app/ringotel/service.php?method=delete_organization",
+			url: "/app/rt/service.php?method=delete_organization",
 			type: "get",
 			cache: true,
 			data: {
@@ -3298,7 +3298,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('.create_connect_loading').fadeIn(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=create_branch",
+				url: "/app/rt/service.php?method=create_branch",
 				type: "get",
 				cache: true,
 				data: {
@@ -3407,7 +3407,7 @@ echo '</style>';
 				// console.log('----------------> data', data);
 
 				$.ajax({
-					url: "/app/ringotel/service.php?method=update_parks_with_updated_settings",
+					url: "/app/rt/service.php?method=update_parks_with_updated_settings",
 					type: "get",
 					cache: true,
 					data,
@@ -3483,7 +3483,7 @@ echo '</style>';
 				const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 				const orgdomain = $('#delete_organization').attr('data-account-domain');
 				$.ajax({
-					url: "/app/ringotel/service.php?method=create_users",
+					url: "/app/rt/service.php?method=create_users",
 					type: "post",
 					cache: true,
 					data: {
@@ -3534,7 +3534,7 @@ echo '</style>';
 		};
 		// console.log('[udpateUser] data', data);
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=update_user",
+			url: "/app/rt/service.php?method=update_user",
 			type: "post",
 			data
 		}).then((res) => {
@@ -3546,7 +3546,7 @@ echo '</style>';
 
 	const getUsersState = (data) => {
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=users_state",
+			url: "/app/rt/service.php?method=users_state",
 			type: "post",
 			cache: true,
 			data
@@ -3578,7 +3578,7 @@ echo '</style>';
 
 	const updateBranchWithDefaultSettings = (orgid, branchid) => {
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=update_branch_with_default_settings",
+			url: "/app/rt/service.php?method=update_branch_with_default_settings",
 			type: "post",
 			cache: true,
 			data: {
@@ -3602,7 +3602,7 @@ echo '</style>';
 			data.packageid = other.packageid;
 		};
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=switch_organization_mode",
+			url: "/app/rt/service.php?method=switch_organization_mode",
 			type: "post",
 			data
 		}).then((res) => {
@@ -3621,7 +3621,7 @@ echo '</style>';
 			data.packageid = other.packageid;
 		};
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=update_organization_with_default_settings",
+			url: "/app/rt/service.php?method=update_organization_with_default_settings",
 			type: "post",
 			data
 		}).then((res) => {
@@ -3704,7 +3704,7 @@ echo '</style>';
 			updateUser({ extension, orgid, id, email, status: 1 }).then((updatedUserData) => {
 				// console.log('[updatedUserData]', updatedUserData);
 				return $.ajax({
-					url: "/app/ringotel/service.php?method=reset_user_password",
+					url: "/app/rt/service.php?method=reset_user_password",
 					type: "post",
 					data: {
 						orgid,
@@ -3868,7 +3868,7 @@ echo '</style>';
 				status: 1
 			};
 			$.ajax({
-				url: "/app/ringotel/service.php?method=activate_user",
+				url: "/app/rt/service.php?method=activate_user",
 				type: "post",
 				cache: true,
 				data,
@@ -3956,7 +3956,7 @@ echo '</style>';
 									username: result.username,
 									password: result.password
 								}),
-								image: "<?php echo PROJECT_PATH . "/app/ringotel/resources/images/180x180.svg" ?>",
+								image: "<?php echo PROJECT_PATH . "/app/rt/resources/images/180x180.svg" ?>",
 								imageOptions: {
 									crossOrigin: "anonymous",
 									margin: 30,
@@ -4129,7 +4129,7 @@ echo '</style>';
 			const data = { orgid, id, extension };
 			// console.log(' [reSyncPassword] data', data);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=resync_password",
+				url: "/app/rt/service.php?method=resync_password",
 				type: "post",
 				data
 			}).then((response) => {
@@ -4164,7 +4164,7 @@ echo '</style>';
 				const data = { orgid, id, extension };
 
 				await $.ajax({
-					url: "/app/ringotel/service.php?method=activate_user",
+					url: "/app/rt/service.php?method=activate_user",
 					type: "post",
 					data
 				}).then((response) => {
@@ -4215,7 +4215,7 @@ echo '</style>';
 
 					if (extensionExist) {
 						await $.ajax({
-							url: "/app/ringotel/service.php?method=resync_names",
+							url: "/app/rt/service.php?method=resync_names",
 							type: "post",
 							data
 						}).then((response) => {
@@ -4227,7 +4227,7 @@ echo '</style>';
 						});
 					} else {
 						$.ajax({
-							url: "/app/ringotel/service.php?method=delete_user",
+							url: "/app/rt/service.php?method=delete_user",
 							type: "get",
 							cache: true,
 							data: {
@@ -4293,7 +4293,7 @@ echo '</style>';
 					// console.log('--------> [reSyncPassword] [map] [data]', data);
 
 					await $.ajax({
-						url: "/app/ringotel/service.php?method=resync_password",
+						url: "/app/rt/service.php?method=resync_password",
 						type: "post",
 						data
 					}).then((response) => {
@@ -4329,7 +4329,7 @@ echo '</style>';
 			};
 			// console.log(' deactivateUser data', data);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deactivate_user",
+				url: "/app/rt/service.php?method=deactivate_user",
 				type: "post",
 				data,
 				success: function (response) {

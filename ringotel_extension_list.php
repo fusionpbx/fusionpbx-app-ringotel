@@ -23,6 +23,7 @@ if (!permission_exists("extension_ringotel")) {
     // render elements (they will be relocated)
     echo $table_head;
 }
+
 echo "<style>";
 echo "    .ringotel_info {";
 echo "        display: flex;";
@@ -114,7 +115,7 @@ echo "</style>";
     if ('<?php echo boolval($reject_ringotel) ?>') {
 
         const getOrganizationId = async () => await $.ajax({
-        		url: "/app/rt/service.php?method=get_organization",
+        		url: "/app/<?php echo $application_directory; ?>/service.php?method=get_organization",
         		type: "get",
         		cache: true
             }).then((response) => {
@@ -124,7 +125,7 @@ echo "</style>";
         
         const getRingotelUsers = async (orgid) => 
             await $.ajax({
-        		url: "/app/rt/service.php?method=get_users",
+        		url: "/app/<?php echo $application_directory; ?>/service.php?method=get_users",
         		type: "get",
         		cache: true,
         		data: {
@@ -289,7 +290,7 @@ echo "</style>";
         function deleteUserRequest(orgid, userId) {
             return new Promise((resolve, reject) => {
                 $.ajax({
-				    url: "/app/rt/service.php?method=delete_user",
+				    url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_user",
 				    type: "get",
 				    cache: true,
 				    data: {

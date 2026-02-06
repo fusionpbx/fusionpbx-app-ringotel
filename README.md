@@ -7,15 +7,22 @@ https://github.com/user-attachments/assets/cab7ccd9-1b0b-4d2e-9a7f-adf9d9a02955
 Install Ringotel from the command line on your server
 ```
 cd /var/www/fusionpbx/app
-git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git rt
-git config --global --add safe.directory /var/www/fusionpbx/app/rt
+git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git ringotel
+git config --global --add safe.directory /var/www/fusionpbx/app/ringotel
 php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions
 php /var/www/fusionpbx/core/upgrade/upgrade.php
 ```
 
+Optional: Ringotel could be installed into a different directory such as rt.
+```
+git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git rt
+git config --global --add safe.directory /var/www/fusionpbx/app/rt
+```
+The menu would need to edited to use the custom directory name.
+
 **Ringotel Website**
 - Menu -> Integrations -> API Settings
-  - Webhook URL: your.domain.com/app/rt/webhook.php
+  - Webhook URL: your.domain.com/app/ringotel/webhook.php
 - Create Key
 - Save the key to use later
 
@@ -57,7 +64,7 @@ This feature adds a "Ringotel status of user" column to FusionPBX's `extensions.
 To enable it, **append the following line** to your `extension.php` file (typically in `app/extensions/`):
 ```
     //include the ringotel extension list
-    require_once dirname(__DIR__, 2)."/app/rt/ringotel_extension_list.php";
+    require_once dirname(__DIR__, 2)."/app/ringotel/ringotel_extension_list.php";
 ```
 ![ringotel_extension_list](https://github.com/user-attachments/assets/be0f82c7-8696-402a-ab2c-6a99d7af0282)
 

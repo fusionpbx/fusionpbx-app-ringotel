@@ -97,7 +97,6 @@
     $apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
     $apps[$x]['default_settings'][$y]['default_setting_description'] = "Bandwidth Application ID";
     $y++;
-
     $apps[$x]['default_settings'][$y]['default_setting_uuid'] = "e0d6b38e-91aa-40cc-a788-c53e4f14d8f3";
     $apps[$x]['default_settings'][$y]['default_setting_category'] = "ringotel";
     $apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "ringotel_token";
@@ -177,6 +176,5 @@
     $apps[$x]['default_settings'][$y]['default_setting_value'] = "";
     $apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
     $apps[$x]['default_settings'][$y]['default_setting_description'] = "Should be used as a domain setting ONLY -  DO NOT enable this in Default Settings";
-    $y++;
-    
+
 ?>

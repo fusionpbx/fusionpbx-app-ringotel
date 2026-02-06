@@ -37,21 +37,22 @@ require_once dirname(__DIR__, 2) . '/resources/require.php';
 require_once dirname(__DIR__, 2) . '/resources/check_auth.php';
 
 // check permissions
-if (permission_exists('ringotel')) {
-    //access granted
-} else {
+if (!permission_exists('ringotel')) {
     echo "access denied";
     exit;
 }
 
 // func lib
-function sanitizeInput($value) {
+function sanitize_input($value) {
     if (is_array($value)) {
-        return array_map('sanitizeInput', $value);
+        return array_map('sanitize_input', $value);
     } else {
         return htmlspecialchars(strip_tags($value));
     }
 }
+
+//get the application directory
+$application_directory = pathinfo(__dir__)['basename'];
 
 // Function for define and sanitize QUERY-params
 // ...simple adding the others method for sanitazing
@@ -59,12 +60,12 @@ $queryParams = [];
 
 if (!empty($_GET)) {
     foreach ($_GET as $key => $value) {
-        $queryParams[$key] = sanitizeInput($value);
+        $queryParams[$key] = sanitize_input($value);
     }
 }
 if (!empty($_POST)) {
     foreach ($_POST as $key => $value) {
-        $queryParams[$key] = sanitizeInput($value);
+        $queryParams[$key] = sanitize_input($value);
     }
 }
 

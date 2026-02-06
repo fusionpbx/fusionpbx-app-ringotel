@@ -170,5 +170,13 @@
     $apps[$x]['default_settings'][$y]['default_setting_enabled'] = "true";
     $apps[$x]['default_settings'][$y]['default_setting_description'] = "Set Default Connection Registration Expires";
     $y++;
+    $apps[$x]['default_settings'][$y]['default_setting_uuid'] = "3ebb09f2-9343-11f0-b014-f32f194e495c";
+    $apps[$x]['default_settings'][$y]['default_setting_category'] = "ringotel";
+    $apps[$x]['default_settings'][$y]['default_setting_subcategory'] = "ringotel_override_unique_organization_domain";
+    $apps[$x]['default_settings'][$y]['default_setting_name'] = "text";
+    $apps[$x]['default_settings'][$y]['default_setting_value'] = "";
+    $apps[$x]['default_settings'][$y]['default_setting_enabled'] = "false";
+    $apps[$x]['default_settings'][$y]['default_setting_description'] = "Should be used as a domain setting ONLY -  DO NOT enable this in Default Settings";
+    $y++;
     
 ?>

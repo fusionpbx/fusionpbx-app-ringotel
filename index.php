@@ -60,12 +60,22 @@ function getLessThan30($str, $prefix)
 	}
 }
 
+$settings = new settings(["domain_uuid" => $_SESSION['domain_uuid'], "user_uuid" => $_SESSION['user_uuid']]);
+
 //additional includes
 require_once "resources/paging.php";
 
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/qrcode/qrcode.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/html-to-image.min.js'></script>\n";
-echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/ringotel/resources/javascript/multiselect-dropdown.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/qrcode/qrcode.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/html-to-image.min.js'></script>\n";
+echo "<script language='JavaScript' type='text/javascript' src='" . PROJECT_PATH . "/app/rt/resources/javascript/multiselect-dropdown.js'></script>\n";
+
+// ERROR Messages 
+echo '	<div id="error_message" class="alert alert-danger alert-dismissible fade show" style="display: none;" role="alert">	';
+echo '	  <strong>Error.</strong> <span id="error_message_text"></span>';
+echo '	  <button type="button" class="close" data-dismiss="alert" aria-label="Close"> ';
+echo '	    <span aria-hidden="true">&times;</span> ';
+echo '	  </button> ';
+echo '	</div> ';
 
 // ORG INIT ERROR
 echo '	<div id="not_exist_organization_note" class="alert alert-warning alert-dismissible fade show" style="display: none;" role="alert">	';
@@ -315,10 +325,10 @@ echo '			<div class="input-group mb-3" style="flex-direction: row;">';
 echo '			  <div class="input-group-prepend">';
 echo '			    <span class="input-group-text" id="basic-addon1">Domain name</span>';
 echo '			  </div>';
-$default_domain_unique_name = getLessThan30(explode('.', $_SESSION['domain_name'])[0], isset($_SESSION['ringotel']['domain_name_postfix']['text']) ? ('-'.$_SESSION['ringotel']['domain_name_postfix']['text']) : '-ringotel');
+$default_domain_unique_name = getLessThan30(explode('.', $_SESSION['domain_name'])[0], $settings->get('ringotel', 'domain_name_postfix', '-ringotel'));
 echo '			  <input type="text" class="form-control" id="domain_unique_name" placeholder="Unique Organization Domain" aria-label="Unique Organization Domain" value=' . $default_domain_unique_name . '>';
 echo '			  <div class="input-group-append">';
-echo '			    <span class="input-group-text" id="basic-addon2">'.(isset($_SESSION['ringotel']['domain_name_postfix']['text']) ? ('-'.$_SESSION['ringotel']['domain_name_postfix']['text']) : '-ringotel').'</span>';
+echo '			    <span class="input-group-text" id="basic-addon2">'.($settings->get('ringotel', 'domain_name_postfix', '-ringotel')).'</span>';
 echo '			</div>';
 echo '	      </div>';
 echo '	      <div class="modal-footer">';
@@ -353,7 +363,7 @@ echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
 echo '			    <div class="input-group-text" id="basic-addon1">Domain or IP address</div>';
 echo '			  </div>';
-echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value=' . $_SESSION['domain_name'] . ':' . (isset($_SESSION['ringotel']['ringotel_organization_port']['text']) ? $_SESSION['ringotel']['ringotel_organization_port']['text'] : '5070') . '>';
+echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value=' . $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) . '>';
 echo '			</div>';
 echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
@@ -1025,6 +1035,7 @@ echo '</style>';
 ?>
 
 <script>
+	let ORG_ID = '';
 	////// Edit User MODAL //////
 	const modalEditUser = ({ id, accountid, domain, name, email, extension, sip_password, sip_username, auth_name, mobile, created }) => {
 		return (
@@ -1195,7 +1206,7 @@ echo '</style>';
 		// SAVE 
 		$(`.edit_user_button`).on('click', (function (el) {
 			const id = el.target.id.split('_').pop();
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// form field value
 			const name = $('#user_name_ec_input_' + id).val();
@@ -1224,20 +1235,42 @@ echo '</style>';
 		}));
 	};
 
+	const parseJson = (response) => {
+	    const cleanedResponse = response.replaceAll("\\", "");
+	    try {
+	        return JSON.parse(cleanedResponse);
+	    } catch (error) {
+	        return { success: false, data: error.message };
+	    }
+	}
+
+	const checkErrors = (response) => {
+		const res = parseJson(response);
+		if (res?.success == false) {
+			// Show Message Error
+			$('#error_message').fadeIn(300);
+			$('#error_message_text').text(res?.data || 'Unexpected Error.');
+			$('#not_exist_organization_note').text('Check the ringotel settings.');
+			$('#not_exist_organization').remove();
+			return null;
+		}
+	}
+
 	// Save Edited User/Extension 
 	const saveEditedUser = (id, data) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$('#edit_user_button_' + id).attr('disabled', true);
 		$('#edit_user_text_' + id).slideUp(300);
 
 		setTimeout(() => {
 			$('#edit_user_loading_' + id).slideDown(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=updateUser",
+				url: "/app/rt/service.php?method=update_user",
 				type: "post",
 				cache: true,
 				data,
 				success: async function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('[updateUser --------> ', result);
 					$('#edit_user_loading_' + id).slideUp(300);
@@ -1262,8 +1295,8 @@ echo '</style>';
 
 	////// Connection MODAL //////
 	const modalEditConnection = ({ id, accountid, name, domain, country, address, created, provision: { protocol, inboundFormat, noverify, nosrtp, multitenant, maxregs } }) => {
-		const address_only = address.split(':')[0];
-		const port_only = address.split(':')[1];
+		const address_only = address?.split(':')[0];
+		const port_only = address?.split(':')[1];
 		return (
 			`
 			<div class="modal hide fade" id="editConnectionModal_${id}" tabindex="-1" role="dialog" aria-labelledby="editConnectionModalLabel_${id}" aria-hidden="true" style="display: none;">
@@ -1379,7 +1412,7 @@ echo '</style>';
 	};
 
 	const updateConnection = (id, data) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$('#edit_connect_button_' + id).attr('disabled', true);
 		$('#edit_connect_text_' + id).slideUp(300);
 		$('#editConnectModal_button_' + id).css('pointer-events', 'none');
@@ -1388,11 +1421,12 @@ echo '</style>';
 		setTimeout(() => {
 			$('#edit_connect_loading_' + id).slideDown(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=updateBranchWithUpdatedSettings",
+				url: "/app/rt/service.php?method=update_branch_with_updated_settings",
 				type: "post",
 				cache: true,
 				data,
 				success: async function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('[updateConnection --------> ', result);
 					$('#edit_connect_loading_' + id).slideUp(300);
@@ -1481,7 +1515,7 @@ echo '</style>';
 			const formData = $(`#modal_form_edit_connection_${id}`).serializeArray();
 			// console.log('--> [edit_connect_button] --> data', formData);
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// form field value
 			const name = $('#connection_name_ec_input_' + id).val();
@@ -1638,7 +1672,7 @@ echo '</style>';
 			// Clear Style
 			$('#parks_save').removeClass('attention');
 			// Parks Number List
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			const parks_numbers_list = [...$('.user_card[data-type-code=PARK]')]?.map((park) => { return { park: park?.getAttribute('data-number'), connection: park?.getAttribute('data-branch-id'), connectionName: park?.getAttribute('data-branch-name') } });
 
@@ -1675,11 +1709,12 @@ echo '</style>';
 					};
 					console.table(' -------> data', data);
 					await $.ajax({
-						url: "/app/ringotel/service.php?method=updateParksWithUpdatedSettings",
+						url: "/app/rt/service.php?method=update_parks_with_updated_settings",
 						type: "get",
 						cache: true,
 						data,
 						success: function (response) {
+							checkErrors(response);
 							const res = JSON.parse(response.replaceAll("\\", ""));
 							// console.log(' ----------------> [createParks] result', Array.isArray(res) && res?.length === 0);
 						},
@@ -1781,19 +1816,20 @@ echo '</style>';
 				$('#manage_numbers_activate_button').attr('disabled', true);
 				$('#manage_numbers_activate_text').slideUp(300);
 				$('#manage_numbers_activate_loading').slideDown(300);
-				const orgid = $('#delete_organization').attr('data-account');
+				const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 				const data = { orgid, name, number, users };
 				// console.log('[manage_numbers_activate_button] data', data);
 
 				// Create Ajax Funciton
 				$.ajax({
-					url: "/app/ringotel/service.php?method=createSMSTrunk",
+					url: "/app/rt/service.php?method=create_sms_trunk",
 					type: "post",
 					cache: true,
 					data,
 					success: async function (response) {
+						checkErrors(response);
 						const { result } = JSON.parse(response.replaceAll("\\", ""));
-						// console.log('[createSMSTrunk --------> ', result);
+						// console.log('[create_sms_trunk --------> ', result);
 
 						// re-Update Trunk
 						const parksUserExtensions = await getUsersWithUpdateElements(); // Get Users Again For Updating DOM and For SMS Trunk
@@ -1822,11 +1858,12 @@ echo '</style>';
 			setTimeout(() => {
 				$('#create_inter_loading').fadeIn();
 				$.ajax({
-					url: "/app/ringotel/service.php?method=createIntegration",
+					url: "/app/rt/service.php?method=create_integration",
 					type: "get",
 					cache: true,
 					data: { profileid },
 					success: function (response) {
+						checkErrors(response);
 						const { result } = JSON.parse(response.replaceAll("\\", ""));
 						// console.log(' ------------ [createIntegration]', result);
 						if (result?.status === 200 && result?.state === 1) {
@@ -2037,7 +2074,7 @@ echo '</style>';
 		// Enable sms trunk update
 		$('.sms_trunk_save').on('click', (function (e) {
 			const id = e.target.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('----> update sms trunk @id, @orgid ', id, orgid);
 
 			// Hide the save button
@@ -2071,11 +2108,12 @@ echo '</style>';
 				$('#sms_trunk_save_loading_' + id).fadeIn(300);
 				// Create Ajax Funciton
 				$.ajax({
-					url: "/app/ringotel/service.php?method=updateSMSTrunk",
+					url: "/app/rt/service.php?method=update_sms_trunk",
 					type: "post",
 					cache: true,
 					data,
 					success: async function (response) {
+						checkErrors(response);
 
 						// re-Update Trunk
 						const parksUserExtensions = await getUsersWithUpdateElements(); // Get Users Again For Updating DOM and For SMS Trunk
@@ -2111,7 +2149,7 @@ echo '</style>';
 		// Enable sms trunk update
 		$('.sms_trunk_close_updating').on('click', (function (e) {
 			const id = e.target.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('----> close updating sms trunk @id, @orgid ', id, orgid);
 
 			// Show delete and Update
@@ -2192,17 +2230,18 @@ echo '</style>';
 			$('#manageNumbersModal_button').attr('disabled', true);
 			const sms_trunk_id = e.target.getAttribute('data-id');
 			const sms_trunk_number = e.target.getAttribute('data-number');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			// console.log('sms_trunk_id', sms_trunk_id);
 
 			$('#sms_trunk_delete_' + sms_trunk_id).attr('disabled', true);
 
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deleteSMSTrunk",
+				url: "/app/rt/service.php?method=delete_sms_trunk",
 				type: "post",
 				cache: true,
 				data: { orgid, id: sms_trunk_id },
 				success: function (response) {
+					checkErrors(response);
 					// console.log('[eventSMSTrunkDelete] response', response);
 					// getIntegration();
 					$('#sms_trunk_' + sms_trunk_id).slideUp(300);
@@ -2228,13 +2267,14 @@ echo '</style>';
 		// disable Button
 		$('#manageNumbersModal_button').attr('disabled', true);
 		// get smsTrunk
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		$.ajax({
-			url: "/app/ringotel/service.php?method=getSMSTrunk",
+			url: "/app/rt/service.php?method=get_sms_trunk",
 			type: "post",
 			cache: true,
 			data: { orgid },
 			success: function (response) {
+				checkErrors(response);
 				const { result } = JSON.parse(response.replaceAll("\\", ""));
 				// console.log('[getSMSTrunk --------> ', result);
 				if (result?.length > 0) {
@@ -2282,11 +2322,12 @@ echo '</style>';
 			$('#integration_service_container').slideUp();
 			const profileid = $('#delete_organization').attr('data-account');
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deleteIntegration",
+				url: "/app/rt/service.php?method=delete_integration",
 				type: "get",
 				cache: true,
 				data: { profileid },
 				success: function (response) {
+					checkErrors(response);
 					// console.log('--------------> [deleteIntegration]', response);
 					getIntegration();
 				},
@@ -2309,14 +2350,15 @@ echo '</style>';
 
 	// get Integrations uses from getOrganization function
 	const getIntegration = (parameters) => {
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// console.log('[getIntegration] ------------> orgid', orgid);
 		$.ajax({
-			url: "/app/ringotel/service.php?method=getIntegration",
+			url: "/app/rt/service.php?method=get_integration",
 			type: "get",
 			cache: true,
 			data: { orgid },
 			success: async function (response) {
+				checkErrors(response);
 				const { result, error } = JSON.parse(response.replaceAll("\\", ""));
 				if (Array.isArray(result) && result[0]?.id === "Bandwidth" && result[0]?.state === 1) {
 					// Button Form Create Actions
@@ -2416,18 +2458,19 @@ echo '</style>';
 			const id = el.currentTarget.getAttribute('data-id');
 			const userid = el.currentTarget.getAttribute('data-userid');
 			const branchid = el.currentTarget.getAttribute('data-branch');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const data = {
 				id,
 				userid,
 				orgid,
 			};
 			$.ajax({
-				url: "/app/ringotel/service.php?method=detachUser",
+				url: "/app/rt/service.php?method=detach_user",
 				type: "post",
 				cache: true,
 				data,
 				success: function (response) {
+					checkErrors(response);
 					// const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// // console.log('[createExtensions] result', result);
 					// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
@@ -2650,7 +2693,7 @@ echo '</style>';
 			$('.create_extensions_text').fadeOut(300);
 			// get options from element
 			const userId = el.currentTarget.getAttribute('data');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const TYPE_CODE = $(el.currentTarget).attr('data-type-code');
 			$('#create_connect_button').attr('disabled', true);
 			$('#create_users_button').attr('disabled', true);
@@ -2658,7 +2701,7 @@ echo '</style>';
 			setTimeout(() => $('#deleting_user_loading_' + userId).fadeIn(), 300);
 			// DELETE USER
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deleteUser",
+				url: "/app/rt/service.php?method=delete_user",
 				type: "get",
 				cache: true,
 				data: {
@@ -2666,6 +2709,7 @@ echo '</style>';
 					orgid: orgid
 				},
 				success: function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					$('#create_user_loading').fadeOut();
 
@@ -2684,7 +2728,7 @@ echo '</style>';
 
 					// get users list per connect
 					$('.delete_connect').map((k, item) => {
-						const orgid = item.getAttribute("data-account");
+						const orgid = item.getAttribute("data-account") || ORG_ID;
 						const branchid = item.getAttribute("data");
 
 						// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
@@ -2754,14 +2798,14 @@ echo '</style>';
 				$('.create_extensions_loading').fadeOut(300);
 				$('#create_users_loading').fadeIn();
 				return $.ajax({
-					url: "/app/ringotel/service.php?method=getUsers",
+					url: "/app/rt/service.php?method=get_users",
 					type: "get",
 					cache: true,
 					data: {
-						orgid,
-						// branchid
+						orgid
 					}
 				}).then((response) => {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// Clear List Of "Create Users" Extensions
 					result.map((ext) => {
@@ -2784,7 +2828,7 @@ echo '</style>';
 		// List of Exist Extension Reset 
 		createListExistExtensions();
 		// get orgid 
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
 		const parksUserExtensions = await getUsers(orgid);
 		// console.log('[getUsersWithUpdateElements] ------------> parksUserExtensions', parksUserExtensions);
@@ -2962,14 +3006,14 @@ echo '</style>';
 		// Bind Event Listener [Delete Connection] 
 		$(".delete_connect").on('click', (function (el) {
 			const branchId = el.currentTarget.getAttribute('data');
-			const orgId = el.currentTarget.getAttribute('data-account');
+			const orgId = el.currentTarget.getAttribute('data-account') || ORG_ID;
 			$('#create_connect_button').attr('disabled', true);
 			$('#create_users_button').attr('disabled', true);
 			$('#delete_connect_' + branchId).fadeOut(300);
 			setTimeout(() => $('#deleting_connect_loading_' + branchId).fadeIn(), 300);
 			// DELETE CONNECTION
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deleteBranch",
+				url: "/app/rt/service.php?method=delete_branch",
 				type: "get",
 				cache: true,
 				data: {
@@ -2977,6 +3021,7 @@ echo '</style>';
 					orgid: orgId
 				},
 				success: function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					$('.create_connect_loading').fadeOut();
 					// console.log('[deleteConnection] result', result);
@@ -3022,13 +3067,14 @@ echo '</style>';
 		setTimeout(() => {
 			$('.create_connect_loading').fadeIn();
 			$.ajax({
-				url: "/app/ringotel/service.php?method=getBranches",
+				url: "/app/rt/service.php?method=get_branches",
 				type: "get",
 				cache: true,
 				data: {
 					orgid
 				}
 			}).then(async (response) => {
+				checkErrors(response);
 				$('.create_connect_loading').fadeOut(300);
 				const { result } = JSON.parse(response.replaceAll("\\", ""));
 				// console.log('[getConnections] result', result);
@@ -3110,14 +3156,15 @@ echo '</style>';
 		$('#integration_create').attr('disabled', true);
 		// Set init Values
 		$('#domain_unique_name').val('<?php echo $default_domain_unique_name ?>');
-		$('#connection_domain').val('<?php echo $_SESSION['domain_name'] . ':' . (isset($_SESSION['ringotel']['ringotel_organization_port']['text']) ? $_SESSION['ringotel']['ringotel_organization_port']['text'] : '5070') ?>');
+		$('#connection_domain').val('<?php echo $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) ?>');
 		$('#maxregs').val('1');
 
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=getOrganization",
+			url: "/app/rt/service.php?method=get_organization",
 			type: "get",
 			cache: true,
 			success: function (response) {
+				checkErrors(response);
 				const { result } = JSON.parse(response.replaceAll("\\", ""));
 				// console.log('[getOrganization] result', result?.id);
 				$('#init_loading').fadeOut(300);
@@ -3134,6 +3181,7 @@ echo '</style>';
 							$('#organization_name').text(result.name);
 							$('#organization_domain').text(result.domain);
 							$('#delete_organization').attr('data-account', result.id);
+							ORG_ID = result.id;
 							$('#delete_organization').attr('data-account-domain', result.domain);
 							$('#organization_created').text('Created: ' + new Date(result.created).toLocaleDateString());
 							$('#create_org_text').fadeIn(300);
@@ -3176,13 +3224,14 @@ echo '</style>';
 		setTimeout(() => {
 			$('#create_org_loading').fadeIn();
 			$.ajax({
-				url: "/app/ringotel/service.php?method=createOrganization",
+				url: "/app/rt/service.php?method=create_organization",
 				type: "get",
 				cache: true,
 				data: {
 					domain: domain_unique_name
 				},
 				success: function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('[create_organization] success', result);
 					if (result?.id) {
@@ -3206,16 +3255,17 @@ echo '</style>';
 		$('#create_users_button').attr('disabled', true);
 		$('#delete_organization').fadeOut(300);
 		setTimeout(() => $('#deleting_org_loading').fadeIn(), 300);
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		// DELETE ORGANIZAITION
 		$.ajax({
-			url: "/app/ringotel/service.php?method=deleteOrganization",
+			url: "/app/rt/service.php?method=delete_organization",
 			type: "get",
 			cache: true,
 			data: {
 				id: orgid,
 			},
 			success: function (response) {
+				checkErrors(response);
 				$('#create_org_loading').fadeOut();
 				setTimeout(() => {
 					$('#create_connect_button').attr('disabled', false);
@@ -3237,7 +3287,7 @@ echo '</style>';
 		$('#create_users_button').attr('disabled', true);
 		$('#delete_organization').fadeOut(300);
 		$('.delete_connect').fadeOut(300);
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 		const maxregs = $('#maxregs').val();
 
@@ -3248,7 +3298,7 @@ echo '</style>';
 		setTimeout(() => {
 			$('.create_connect_loading').fadeIn(300);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=createBranch",
+				url: "/app/rt/service.php?method=create_branch",
 				type: "get",
 				cache: true,
 				data: {
@@ -3257,6 +3307,7 @@ echo '</style>';
 					connection_domain
 				},
 				success: function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('[createConnection] result', result);
 					setTimeout(() => {
@@ -3328,7 +3379,7 @@ echo '</style>';
 			// button for the open modal
 			$('#create_parks_modal_button').attr('disabled', true);
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			setTimeout(() => {
 				const branchid = $('#users_selector_branch_for_parks').children(":selected").attr("data-branch");
@@ -3356,11 +3407,12 @@ echo '</style>';
 				// console.log('----------------> data', data);
 
 				$.ajax({
-					url: "/app/ringotel/service.php?method=updateParksWithUpdatedSettings",
+					url: "/app/rt/service.php?method=update_parks_with_updated_settings",
 					type: "get",
 					cache: true,
 					data,
 					success: function (response) {
+						checkErrors(response);
 						const res = JSON.parse(response.replaceAll("\\", ""));
 						// console.log('[createParks] result', Array.isArray(res) && res?.length === 0);
 						if (Array.isArray(res) && res?.length === 0) {
@@ -3428,10 +3480,10 @@ echo '</style>';
 
 				const branchid = $('#users_selector_branch').children(":selected").attr("data-branch");
 				const branchname = $('#users_selector_branch').children(":selected").attr("data-branch-name");
-				const orgid = $('#delete_organization').attr('data-account');
+				const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 				const orgdomain = $('#delete_organization').attr('data-account-domain');
 				$.ajax({
-					url: "/app/ringotel/service.php?method=createUsers",
+					url: "/app/rt/service.php?method=create_users",
 					type: "post",
 					cache: true,
 					data: {
@@ -3442,6 +3494,7 @@ echo '</style>';
 						preusers: list_extensions_to_add
 					},
 					success: function (response) {
+						checkErrors(response);
 						// const { result } = JSON.parse(response.replaceAll("\\", ""));
 						// // console.log('[createExtensions] result', result);
 						setTimeout(() => {
@@ -3481,10 +3534,11 @@ echo '</style>';
 		};
 		// console.log('[udpateUser] data', data);
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=updateUser",
+			url: "/app/rt/service.php?method=update_user",
 			type: "post",
 			data
 		}).then((res) => {
+			checkErrors(res);
 			const { result } = JSON.parse(res.replaceAll("\\", ""));
 			return result;
 		});;
@@ -3492,11 +3546,12 @@ echo '</style>';
 
 	const getUsersState = (data) => {
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=usersState",
+			url: "/app/rt/service.php?method=users_state",
 			type: "post",
 			cache: true,
 			data
 		}).then((res) => {
+			checkErrors(res);
 			const { result } = JSON.parse(res.replaceAll("\\", ""));
 			return result;
 		});
@@ -3504,7 +3559,7 @@ echo '</style>';
 
 	const checkStateUsers = () => {
 		calledUserStateChecker = true;
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 		const connections = [...$('.connection').map((k, item) => item.getAttribute('data-id'))];
 		Promise.all(
 			connections.map(async (branchid) => {
@@ -3523,7 +3578,7 @@ echo '</style>';
 
 	const updateBranchWithDefaultSettings = (orgid, branchid) => {
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=updateBranchWithDefaultSettings",
+			url: "/app/rt/service.php?method=update_branch_with_default_settings",
 			type: "post",
 			cache: true,
 			data: {
@@ -3531,6 +3586,7 @@ echo '</style>';
 				branchid
 			},
 		}).then((res) => {
+			checkErrors(res);
 			const { result } = JSON.parse(res.replaceAll("\\", ""));
 			// console.log('updateBranchWithDefaultSettings', result);
 			return result;
@@ -3546,10 +3602,11 @@ echo '</style>';
 			data.packageid = other.packageid;
 		};
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=switchOrganizationMode",
+			url: "/app/rt/service.php?method=switch_organization_mode",
 			type: "post",
 			data
 		}).then((res) => {
+			checkErrors(res);
 			const response = JSON.parse(res.replaceAll("\\", ""));
 			return response;
 		});
@@ -3564,10 +3621,11 @@ echo '</style>';
 			data.packageid = other.packageid;
 		};
 		return $.ajax({
-			url: "/app/ringotel/service.php?method=updateOrganizationWithDefaultSettings",
+			url: "/app/rt/service.php?method=update_organization_with_default_settings",
 			type: "post",
 			data
 		}).then((res) => {
+			checkErrors(res);
 			const response = JSON.parse(res.replaceAll("\\", ""));
 			return response;
 		});
@@ -3608,7 +3666,7 @@ echo '</style>';
 		// 		$('#email_for_reset_password').removeClass('alert-danger');
 		// 	}
 		const extension = $('#email_for_reset_password').attr('data-extension');
-		const orgid = $('#email_for_reset_password').attr('data-orgid');
+		const orgid = $('#email_for_reset_password').attr('data-orgid') || ORG_ID;
 		const id = $('#email_for_reset_password').attr('data-id');
 		const email = $('#email_for_reset_password').val();
 		resetPassword({ extension, orgid, id, email });
@@ -3624,7 +3682,7 @@ echo '</style>';
 		// 	if ($('#email_for_user').hasClass('alert-danger')) {
 		// 		$('#email_for_user').removeClass('alert-danger');
 		// 	}
-		const orgid = $('#email_for_user').attr('data-orgid');
+		const orgid = $('#email_for_user').attr('data-orgid') || ORG_ID;
 		const id = $('#email_for_user').attr('data-id');
 		const extension = $('#email_for_user').attr('data-extension');
 		const email = $('#email_for_user').val();
@@ -3646,7 +3704,7 @@ echo '</style>';
 			updateUser({ extension, orgid, id, email, status: 1 }).then((updatedUserData) => {
 				// console.log('[updatedUserData]', updatedUserData);
 				return $.ajax({
-					url: "/app/ringotel/service.php?method=resetUserPassword",
+					url: "/app/rt/service.php?method=reset_user_password",
 					type: "post",
 					data: {
 						orgid,
@@ -3654,6 +3712,7 @@ echo '</style>';
 						email
 					}
 				}).then((response) => {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('-------------> [resetPassword] result', result);
 
@@ -3809,11 +3868,12 @@ echo '</style>';
 				status: 1
 			};
 			$.ajax({
-				url: "/app/ringotel/service.php?method=activateUser",
+				url: "/app/rt/service.php?method=activate_user",
 				type: "post",
 				cache: true,
 				data,
 				success: function (response) {
+					checkErrors(response);
 					// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
 					getUsersWithUpdateElements();
 
@@ -3896,7 +3956,7 @@ echo '</style>';
 									username: result.username,
 									password: result.password
 								}),
-								image: "<?php echo PROJECT_PATH . "/app/ringotel/resources/images/180x180.svg" ?>",
+								image: "<?php echo PROJECT_PATH . "/app/rt/resources/images/180x180.svg" ?>",
 								imageOptions: {
 									crossOrigin: "anonymous",
 									margin: 30,
@@ -4032,7 +4092,7 @@ echo '</style>';
 		$(".resetPassword").on('click', (function (el) {
 			const id = el.currentTarget.getAttribute('data-id');
 			const extension = el.currentTarget.getAttribute('data-extension');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			$('#email_for_reset_password').attr('data-id', id);
 			$('#email_for_reset_password').attr('data-extension', extension);
 			$('#email_for_reset_password').attr('data-orgid', orgid);
@@ -4046,7 +4106,7 @@ echo '</style>';
 		$(".activateUser").on('click', (function (el) {
 			const id = el.currentTarget.getAttribute('data-id');
 			const extension = el.currentTarget.getAttribute('data-extension');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			$('#email_for_user').attr('data-id', id);
 			$('#email_for_user').attr('data-extension', extension);
 			$('#email_for_user').attr('data-orgid', orgid);
@@ -4062,17 +4122,18 @@ echo '</style>';
 			$(el.currentTarget).children('svg').css('animation', 'sync 2s infinite');
 
 			const id = el.currentTarget.getAttribute('data-id');
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const extension = el.currentTarget.getAttribute('data-extension');
 
 			// update Password of User 
 			const data = { orgid, id, extension };
 			// console.log(' [reSyncPassword] data', data);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=reSyncPassword",
+				url: "/app/rt/service.php?method=resync_password",
 				type: "post",
 				data
 			}).then((response) => {
+				checkErrors(response);
 				const { result } = JSON.parse(response.replaceAll("\\", ""));
 				// console.log('[reSyncPassword] result', result);
 				// Generate qr code and show modal
@@ -4091,7 +4152,7 @@ echo '</style>';
 		const all_ue = [...exist_extensions_list];
 
 		// Organization Id
-		const orgid = $('#delete_organization').attr('data-account');
+		const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 		// All Requsts
 		return await Promise.all(
@@ -4103,10 +4164,11 @@ echo '</style>';
 				const data = { orgid, id, extension };
 
 				await $.ajax({
-					url: "/app/ringotel/service.php?method=activateUser",
+					url: "/app/rt/service.php?method=activate_user",
 					type: "post",
 					data
 				}).then((response) => {
+					checkErrors(response);
 					const res = JSON.parse(response.replaceAll("\\", ""));
 					// console.log(res.error.message);
 					const error = '<div style="position: absolute;font-size: 15pt;text-transform: uppercase;width: 14rem;padding: 2.5rem 1rem 2rem 1rem;text-align: center;">registration failed</div>';
@@ -4135,7 +4197,7 @@ echo '</style>';
 			const all_ue = [...exist_users_list, ...exist_extensions_list];
 
 			// Organization Id
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// Replace Text
 			$('#resync_names').text('Loading...');
@@ -4153,10 +4215,11 @@ echo '</style>';
 
 					if (extensionExist) {
 						await $.ajax({
-							url: "/app/ringotel/service.php?method=reSyncNames",
+							url: "/app/rt/service.php?method=resync_names",
 							type: "post",
 							data
 						}).then((response) => {
+							checkErrors(response);
 							const res = JSON.parse(response.replaceAll("\\", ""));
 							const message = '<div style="position: absolute;font-size: 15pt;text-transform: uppercase;width: 14rem;padding: 3.25rem 1rem 3rem 1rem;text-align: center;">Updated</div>';
 							$('#user_card_' + res?.result?.id).children('.card-body').css('filter', 'blur(4px) opacity(0.5)');
@@ -4164,7 +4227,7 @@ echo '</style>';
 						});
 					} else {
 						$.ajax({
-							url: "/app/ringotel/service.php?method=deleteUser",
+							url: "/app/rt/service.php?method=delete_user",
 							type: "get",
 							cache: true,
 							data: {
@@ -4172,6 +4235,7 @@ echo '</style>';
 								orgid
 							}
 						}).then((response) => {
+							checkErrors(response);
 							const res = JSON.parse(response?.replaceAll("\\", ""));
 							if (res?.result) {
 								const message = '<div style="position: absolute;font-size: 15pt;text-transform: uppercase;width: 14rem;padding: 3.25rem 1rem 3rem 1rem;text-align: center;">Deleted</div>';
@@ -4212,7 +4276,7 @@ echo '</style>';
 			const all_ue = [...exist_users_list, ...exist_extensions_list];
 
 			// Organization Id
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 
 			// Replace Text
 			$('#resync_password').text('Loading...');
@@ -4229,10 +4293,11 @@ echo '</style>';
 					// console.log('--------> [reSyncPassword] [map] [data]', data);
 
 					await $.ajax({
-						url: "/app/ringotel/service.php?method=reSyncPassword",
+						url: "/app/rt/service.php?method=resync_password",
 						type: "post",
 						data
 					}).then((response) => {
+						checkErrors(response);
 						const res = JSON.parse(response.replaceAll("\\", ""));
 						// console.log('[reSyncPassword] result?.result', res?.result);
 					});
@@ -4257,17 +4322,18 @@ echo '</style>';
 			const id = el.currentTarget.getAttribute('data-id');
 			$(el.currentTarget).children('i').css('animation', 'plug 3s infinite');
 
-			const orgid = $('#delete_organization').attr('data-account');
+			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const data = {
 				orgid,
 				id,
 			};
 			// console.log(' deactivateUser data', data);
 			$.ajax({
-				url: "/app/ringotel/service.php?method=deactivateUser",
+				url: "/app/rt/service.php?method=deactivate_user",
 				type: "post",
 				data,
 				success: function (response) {
+					checkErrors(response);
 					const { result } = JSON.parse(response.replaceAll("\\", ""));
 					// console.log('[deactivateUser] result', result);
 					// Generate qr code and show modal

@@ -1,996 +1,984 @@
 <?php
+
 /*
-    Ringotel Integration for FusionPBX
-    Version: 1.0
-
-    The contents of this file are subject to the Mozilla Public License Version
-    1.1 (the "License"); you may not use this file except in compliance with
-    the License. You may obtain a copy of the License at
-    http://www.mozilla.org/MPL/
-
-    Software distributed under the License is distributed on an "AS IS" basis,
-    WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
-    for the specific language governing rights and limitations under the
-    License.
-
-    The Initial Developer of the Original Code is
-    Vladimir Vladimirov <w@metastability.ai>
-    Portions created by the Initial Developer are Copyright (C) 2022-2025
-    the Initial Developer. All Rights Reserved.
-
-    Contributor(s):
-    Vladimir Vladimirov <w@metastability.ai>
-
-    The Initial Developer of the Original Code is
-    Mark J Crane <markjcrane@fusionpbx.com>
-    Portions created by the Initial Developer are Copyright (C) 2008-2025
-    the Initial Developer. All Rights Reserved.
-
-    Contributor(s):
-    Mark J Crane <markjcrane@fusionpbx.com>
-*/
-
-require_once "app/ringotel/resources/classes/ringotelRequests.php";
-require_once "app/ringotel/resources/classes/ringotelErrorService.php";
-require_once "app/ringotel/resources/classes/ringotelRepository.php";
-
-class RingotelClass
-{
-    private $api;
-    private $repository;
-    public $domain_name_postfix;
-    public $max_registration;
-    public $default_connection_protocol;
-    public $organization_default_emailcc;
-
-    function __construct($mode)
-    {
-        $this->domain_name_postfix = isset($_SESSION['ringotel']['domain_name_postfix']['text']) ? ('-'.$_SESSION['ringotel']['domain_name_postfix']['text']) : '-ringotel';
-        $this->max_registration = isset($_SESSION['ringotel']['max_registration']['text']) ? intval($_SESSION['ringotel']['max_registration']['text']) : 1;
-        $this->default_connection_protocol = isset($_SESSION['ringotel']['default_connection_protocol']['text']) ? $_SESSION['ringotel']['default_connection_protocol']['text'] : 'sip-tcp';
-        $this->organization_default_emailcc = isset($_SESSION['ringotel']['organization_default_emailcc']['text']) ? $_SESSION['ringotel']['organization_default_emailcc']['text'] : '';
-        $ringotel_api = $mode !== 'INTEGRATION' ? $_SESSION['ringotel']['ringotel_api']['text'] : $_SESSION['ringotel']['ringotel_integration_api']['text'];
-        $this->api = new RingotelApiFunctions($ringotel_api);
-        $this->error = new RingotelErrorService();
-        unset($ringotel_api);
-    }
-
-    function __destruct()
-    {
-        foreach ($this as $key => $value) {
-            unset($this->$key);
-        }
-    }
-
-    // split for syllabe less than 30 charasters
-    function lessThan30($str, $prefix)
-    {
-        $lengthDomainNamePlusPrefix = strlen($str . $prefix);
-        if ($lengthDomainNamePlusPrefix > 30) {
-            $new_text = preg_replace('/([b-df-hj-np-tv-z])([b-df-hj-np-tv-z])/i', '$1-$2', $str);
-            $exploded = explode('-', $new_text);
-            array_pop($exploded);
-            $Next = implode($exploded);
-            return $this->lessThan30($Next, $prefix);
-        } else {
-            return $str . $prefix;
-        }
-    }
-
-    // GET ORGANIZATIONS
-    public function getOrganization($mode)
-    {
-        // Main
-        $server_output = $this->api->getOrganizations(null, null);
-
-        // HERE the filter functional
-        $domain_name = isset($_REQUEST['domain_name']) ? $_REQUEST['domain_name'] : $_SESSION['domain_name'];
-
-        $DomainNameLessThan30 = $this->lessThan30(explode(".", $domain_name)[0], $this->domain_name_postfix);
-
-        // var_dump($DomainNameLessThan30);
-        $filtered_organization = array_filter(
-            $server_output['result'],
-            function ($v, $k) use ($DomainNameLessThan30) {
-                if (
-                    $DomainNameLessThan30 === $v["domain"] ||
-                    $_SESSION['domain_name'] === $v["name"] ||
-                    str_replace('_', '.', $v['domain']) === $_SESSION['domain_name'] ||
-                    explode('.', str_replace('_', '.', $v['domain']))[0] === explode('.', $_SESSION['domain_name'])[0] ||
-                    explode('-', $v['domain'])[0] === explode('.', $_SESSION['domain_name'])[0]
-                ) {
-                    return true;
-                }
-            },
-            ARRAY_FILTER_USE_BOTH
-        );
-
-        if ($mode === 'RETURN') {
-            return array("result" => array_pop($filtered_organization));
-        } else {
-            echo json_encode(array("result" => array_pop($filtered_organization)));
-        }
-    }
-
-    // CREATE ORGANIZATION
-    public function createOrganization()
-    {
-        $DomainNameLessThan30 = $this->lessThan30(explode(".", $_SESSION['domain_name'])[0], $this->domain_name_postfix);
-
-        //default param
-        $param['name'] = $_REQUEST['name'];	                                                                                                    # string	org name
-        $param['domain'] = isset($_REQUEST['domain']) ? ($_REQUEST['domain'] . $this->domain_name_postfix) : $DomainNameLessThan30;                             # string	org domain
-        $param['region'] = isset($_REQUEST['region']) ? $_REQUEST['region'] : $_SESSION['ringotel']['ringotel_organization_region']['text'];    # string	region ID (see below)
-        $param['adminlogin'] = $_REQUEST['adminlogin'];                                                                                         # string	(optional) org admin login
-        $param['adminpassw'] = $_REQUEST['adminpassw'];                                                                                         # string	(optional) org admin password
-
-        //main
-        $server_output = $this->api->createOrganization($param);
-        unset($param);
-
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // DELETE ORGANIZATION
-    public function deleteOrganization()
-    {
-        $param['id'] = $_REQUEST['id'];
-
-        //main
-        $server_output = $this->api->deleteOrganization($param);
-        unset($param);
-
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // GET BRANCHES
-    public function getBranches($mode)
-    {
-        $param['orgid'] = $_REQUEST['orgid'];
-        $server_output = $this->api->getBranches($param);
-        unset($param);
-
-        if ($mode === 'RETURN') {
-            return $server_output;
-        } else {
-            //json response data
-            echo json_encode($server_output);
-        }
-    }
-
-    // CREATE BRANCH
-    public function createBranch()
-    {
-        $param = array();
-
-        //default param
-        $param['orgid'] = $_REQUEST['orgid'];
-        $param['maxregs'] = isset($_REQUEST['maxregs']) ? $_REQUEST['maxregs'] : $this->max_registration;
-        $param['name'] = isset($_REQUEST['connection_name']) ? $_REQUEST['connection_name'] : $_SESSION['domain_name'];             # string	Connection name
-        $param['address'] = isset($_REQUEST['connection_domain']) ? $_REQUEST['connection_domain'] : $_SESSION['domain_name'];      # string	Domain or IP address
-        $param['protocol'] = isset($_REQUEST['protocol']) ? $_REQUEST['protocol'] : $this->default_connection_protocol;
-        //main
-        $server_output = $this->api->createBranch($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // DELETE BRANCH
-    public function deleteBranch()
-    {
-        $param['id'] = $_REQUEST['id'];
-        $param['orgid'] = $_REQUEST['orgid'];
-
-        //main
-        $server_output = $this->api->deleteBranch($param);
-        unset($param);
-
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // GET USERS
-    public function getUsers()
-    {
-        
-        $param = array();
-        //default param
-        $param['branchid'] = $_REQUEST['branchid'];
-        $param['orgid'] = $_REQUEST['orgid'];
-
-        //main
-        $server_output = $this->api->getUsers($param, null, null);
-        unset($param);
-
-        // check exists extensions
-        $sql  = "    select extension from v_extensions  ";
-        $sql .= "    where domain_uuid = :domain_uuid ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $db = new database;
-        $extensions = $db->select($sql, $parameters);
-        unset($sql, $db, $parameters);
-
-        $_extensions = array_map(function ($item) { return $item['extension']; }, $extensions);
-
-        foreach ($server_output['result'] as $key => $ext) {
-            if (in_array(preg_replace('/\D/', '', $ext['extension']), $_extensions)) {
-                $server_output['result'][$key]['extension_exists'] = true;
-            } else {
-                $server_output['result'][$key]['extension_exists'] = false;
-            }
-        }
-
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // GET USERS
-    public function createUsers()
-    {
-        $param = array();
-        //default param
-        $param['branchid'] = $_REQUEST['branchid'];
-        $param['branchname'] = $_REQUEST['branchname'];
-        $param['orgid'] = $_REQUEST['orgid'];
-        $param['orgdomain'] = $_REQUEST['orgdomain'];
-        $preusers = $_REQUEST['preusers'];
-
-        // Get List Of Extensions
-        $sql = "    select * from v_extensions  ";
-        $sql .= "    where domain_uuid = :domain_uuid ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $db = new database;
-        $extensions = $db->select($sql, $parameters);
-        unset($sql, $db, $parameters);
-
-        foreach ($preusers as $item) {
-            if ($item['create'] === 'true') {
-                $ext_find = null;
-                foreach ($extensions as $exists_ext) {
-                    if ($exists_ext['extension_uuid'] == $item['extension_uuid']) {
-                        $ext_find = $exists_ext;
-                        break 1;
-                    }
-                }
-                $user = array(
-                    "name" => !empty($ext_find['effective_caller_id_name']) ? $ext_find['effective_caller_id_name'] : $ext_find['extension'],
-                    "domain" => $param['orgdomain'],
-                    "branchname" => $param['branchname'],
-                    "status" => $item['active'] == 'true' ? 1 : 0,
-                    "extension" => $ext_find['extension'],
-                    "username" => $ext_find['extension'],
-                    "password" => $ext_find['password'],
-                    "authname" => $ext_find['extension'],
-                );
-                if (!empty($item['email'])) {
-                    $user['email'] = $item['email'];
-                }
-                $param['users'][] = $user;
-            }
-        }
-
-        //main
-        $server_output = $this->api->createUsers($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // Update Password of User
-    public function reSyncNames()
-    {
-        $param = array();
-
-        // Default param
-        $param["orgid"] = $_REQUEST['orgid'];
-        $param["id"] = $_REQUEST['id'];
-
-        // Get List Of Extensions
-        $sql  = "    select * from v_extensions  ";
-        $sql .= "    where ";
-        $sql .= "    domain_uuid = :domain_uuid ";
-        $sql .= "    and    ";
-        $sql .= "    extension = :extension ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $parameters['extension'] = $_REQUEST['extension'];
-        $db = new database;
-        $extension = $db->select($sql, $parameters, 'row');
-        
-        // echo var_dump($extension);
-
-        unset($sql, $db, $parameters);
-        if (isset($extension['extension_uuid'])) {
-            $param["name"] = !empty($extension['effective_caller_id_name']) ? $extension['effective_caller_id_name'] : $extension['extension'];
-
-            //main
-            $server_output = $this->api->updateUser($param);
-
-            unset($param);
-            //json response data
-            echo json_encode($server_output);
-        } else {
-            echo json_encode(array());
-        }
-    }
-
-    // Update Password of User
-    public function reSyncPassword()
-    {
-        $param = array();
-
-        // Default param
-        $param["orgid"] = $_REQUEST['orgid'];
-        $param["id"] = $_REQUEST['id'];
-
-        // Get List Of Extensions
-        $sql = "    select * from v_extensions  ";
-        $sql .= "    where domain_uuid = :domain_uuid ";
-        $sql .= "    and extension = :extension ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $parameters['extension'] = $_REQUEST['extension'];
-        $db = new database;
-        $extension = $db->select($sql, $parameters, 'row');
-        unset($sql, $db, $parameters);
-
-        if (isset($extension['extension_uuid'])) {
-            $param["password"] = $extension['password'];
-
-            //main
-            $server_output = $this->api->updateUser($param);
-
-            unset($param);
-            //json response data
-            echo json_encode($server_output);
-        } else {
-            echo json_encode(array());
-        }
-    }
-
-    // GET USERS
-    public function deleteUser()
-    {
-        $param = array();
-        //default param
-        $param['id'] = $_REQUEST['id'];
-        $param['orgid'] = $_REQUEST['orgid'];
-
-        //main
-        $server_output = $this->api->deleteUser($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // UPDATE USER
-    public function updateUser()
-    {
-        $param = array();
-
-        // Default param
-        $param["orgid"] = $_REQUEST['orgid'];
-        $param["id"] = $_REQUEST['id'];
-
-        // Get List Of Extensions
-        $sql  = "    select * from v_extensions  ";
-        $sql .= "    where domain_uuid = :domain_uuid ";
-        $sql .= "    and extension = :extension ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $parameters['extension'] = $_REQUEST['extension'];
-        $db = new database;
-        $extension = $db->select($sql, $parameters, 'row');
-        unset($sql, $db, $parameters);
-
-        if (isset($extension['extension_uuid'])) {
-            if (isset($_REQUEST['name'])) {
-                $param["name"] = $_REQUEST['name'];
-            }
-            if (isset($_REQUEST['extension'])) {
-                $param["extension"] = $_REQUEST['extension'];
-            }
-            if (isset($_REQUEST['email'])) {
-                $param["email"] = $_REQUEST['email'];
-            }
-            $param["status"] = isset($_REQUEST['status']) ? intval($_REQUEST['status']) : 0;
-
-            //main
-            $server_output = $this->api->updateUser($param);
-
-            unset($param);
-            //json response data
-            echo json_encode($server_output);
-        }
-    }
-
-
-    // ACTIVATE USER
-    public function resetUserPassword()
-    {
-        $param = array();
-
-        // Default param
-        $param["id"] = $_REQUEST['id'];
-        $param["orgid"] = $_REQUEST['orgid'];
-
-        //main
-        $server_output = $this->api->resetUserPassword($param);
-        unset($param);
-
-        // if ($server_output['result']['id'] == $_REQUEST['id']) {
-        //     //json response data
-        //     $output['result']['status'] = true;
-        //     echo json_encode($output);
-        // }
-        echo json_encode($server_output);
-        unset($output, $server_output);
-    }
-
-    // ACTIVATE USER
-    public function activateUser()
-    {
-        $param = array();
-
-        // Default param
-        $param["orgid"] = $_REQUEST['orgid'];
-        $param["id"] = $_REQUEST['id'];
-
-        // Get List Of Extensions
-        $sql  = "    select * from v_extensions  ";
-        $sql .= "    where domain_uuid = :domain_uuid ";
-        $sql .= "    and extension = :extension ";
-        $parameters['domain_uuid'] = $_SESSION['domain_uuid'];
-        $parameters['extension'] = $_REQUEST['extension'];
-        $db = new database;
-        $extension = $db->select($sql, $parameters, 'row');
-        unset($sql, $db, $parameters);
-
-        if (isset($extension['extension_uuid'])) {
-            $param["name"] = !empty($extension['effective_caller_id_name']) ? $extension['effective_caller_id_name'] : $extension['extension'];
-            $param["extension"] = isset($_REQUEST['extension']) ? $_REQUEST['extension'] : $extension['extension'];
-            $param["email"] = $_REQUEST['email'];
-            $param["username"] = $extension['username'];
-            $param["authname"] = $extension['authname'];
-            $param["status"] = 1;
-            //main
-            $server_output = $this->api->updateUser($param);
-            unset($param);
-            //json response data
-            echo json_encode($server_output);
-        }
-    }
-
-    // Detach User
-    public function detachUser()
-    {
-        $param = array(
-            "id" => $_REQUEST['id'],
-            "userid" => $_REQUEST['userid'],
-            "orgid" => $_REQUEST['orgid']
-        );
-        //main
-        $server_output = $this->api->updateUser($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    // GET USERS
-    public function usersState()
-    {
-        $param = array();
-        //default param
-        $param['branchid'] = $_REQUEST['branchid'];
-        $param['orgid'] = $_REQUEST['orgid'];
-
-        //main
-        $server_output = $this->api->getUsers($param, null, null);
-        $output = array();
-        foreach ($server_output['result'] as $user) {
-            $elem = array();
-            $elem['id'] = $user['id'];
-            $elem['state'] = $user['state'];
-            $output['result'][] = $elem;
-            unset($elem);
-        }
-        unset($param, $server_output);
-        //json response data
-        echo json_encode($output);
-    }
-
-    public function updateBranchWithDefaultSettings()
-    {
-        $param = array(
-            "orgid" => $_REQUEST['orgid'],
-            "id" => $_REQUEST['branchid'],
-            "provision" => array(
-                "multitenant" => false,
-                "norec" => false,
-                "nostates" => false,
-                "nochats" => false,
-                "novideo" => false,
-                "noptions" => true,
-                "nologae" => false,
-                "maxregs" => $this->max_registration,
-                "beta_updates" => false,
-                "sms" => 3,
-                "paging" => 0,
-                "private" => false,
-                "sms2email" => true,
-                "nologmc" => false,
-                "application" => "",
-                "popup" => 0,
-                "calldelay" => 10,
-                "pcdelay" => false,
-                "dnd" => array(
-                    "on" => "",
-                    "off" => ""
-                ),
-                "vmail" => array(
-                    "on" => "",
-                    "off" => "",
-                    "ext" => "*97",
-                    "spref" => "*97",
-                    "mess" => "You have a new message",
-                    "name" => "Voicemail"
-                ),
-                "forwarding" => array(
-                    "cfon" => "",
-                    "cfoff" => "",
-                    "cfuon" => "",
-                    "cfuoff" => "",
-                    "cfbon" => "",
-                    "cfboff" => ""
-                ),
-                "callwaiting" => array(
-                    "on" => "",
-                    "off" => ""
-                ),
-                "callpark" => array(
-                    "park" => "park+*",
-                    "retrieve" => "park+*",
-                    "subscribe" => "park+*",
-                    "slots" => array(
-                        0 => array(
-                            "alias" => "Park 1",
-                            "slot" => "5901"
-                        ),
-                        1 => array(
-                            "alias" => "Park 2",
-                            "slot" => "5902"
-                        ),
-                        2 => array(
-                            "alias" => "Park 3",
-                            "slot" => "5903"
-                        )
-                    )
-                ),
-                "features" => "pbx",
-                "blfs" => array(),
-                "speeddial" => array(),
-                "custompages" => array(),
-                "fallback" => array(
-                    "type" => "",
-                    "prefix" => ""
-                )
-            )
-        );
-
-        //main
-        $server_output = $this->api->updateBranch($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    public function updateBranchWithUpdatedSettings()
-    {
-        // ✅ address: "vladtest.ftpbx.net" 
-        // ✅ country: "US"
-        // ✅ inboundFormat: ""
-        // ✅ multitenant: true
-        // ✅ name: "vladtest.ftpbx.net"
-        // ✅ nosrtp: true                 additional
-        // ✅ noverify: true               additional
-        // ✅ port: "5070"
-        // ✅ protocol: "sips"
-        // ✅ maxregs: "2" -> Int
-
-        $provision = array(
-            "multitenant" => $_REQUEST['multitenant'] == 'true' ? true : false,
-            "inboundFormat" => $_REQUEST['inboundFormat'],
-            "protocol" => $_REQUEST['protocol'],
-            // required
-            "maxregs" =>  intval($_REQUEST['maxregs']),
-        );
-
-        if (isset($_REQUEST['nosrtp'])) {
-            $provision['nosrtp'] = $_REQUEST['nosrtp'] == 'true' ? true : false;
-        }
-
-        if (isset($_REQUEST['noverify'])) {
-            $provision['noverify'] = $_REQUEST['noverify'] == 'true' ? true : false;
-        }
-
-        $param = array(
-            "orgid" => $_REQUEST['orgid'],
-            "id" => $_REQUEST['id'],
-            "name" => $_REQUEST["name"],
-            "address" => $_REQUEST["address"] . ':' . $_REQUEST['port'],
-            "country" => $_REQUEST['country'],
-            "provision" => $provision
-        );
-
-        //main
-        $server_output = $this->api->updateBranch($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-
-    public function updateParksWithUpdatedSettings()
-    {
-        // ✅ orgid
-        // ✅ id: branchid
-        // ✅ name: "vladtest.ftpbx.net"
-        // ✅ from_park_number: 5901
-        // ✅ to_park_number: 5903
-        // array_of_parks: ['5906', '5908', '5912']
-
-        $from_park_number = $_REQUEST['from_park_number'];
-        $to_park_number = $_REQUEST['to_park_number'];
-
-        $park_array = $_REQUEST['park_array'];
-
-        if (isset($from_park_number) && isset($to_park_number)) {
-
-            $slots = array();
-
-            $id = 0;
-            foreach ($park_array as $park) {
-                $parkNumber = intval(substr(strval($park), -2));
-                $slots[$id]['alias'] = 'Park ' . $parkNumber;
-                $slots[$id]['slot'] = strval($park);
-                $id++;
-            }
-            // for ($x = $from_park_number; $x <= $_REQUEST['to_park_number']; $x++) {
-            //     $parkNumber = intval(substr(strval($x), -2));
-            //     $slots[$id]['alias'] = 'Park ' . $parkNumber;
-            //     $slots[$id]['slot'] = strval($x);
-            //     $id++;
-            // }
-            
-            $provision = array(
-                "callpark" => array(
-                    "slots" => $slots,
-                    "subscribe" => "park+*",
-                    "retrieve" => "park+*",
-                    "park" => "park+*"
-                ),
-                // required
-                "maxregs" => $this->max_registration,
-            );
-
-            unset($id, $slots);
-
-            $param = array(
-                "orgid" => $_REQUEST['orgid'],
-                "id" => $_REQUEST['id'],
-                "name" => $_REQUEST["name"],
-                "provision" => $provision
-            );
-
-            //main
-            $server_output = $this->api->updateBranch($param);
-            unset($param);
-            // json response data
-            echo json_encode($server_output);
-        }
-    }
-
-    public function updateOrganizationWithDefaultSettings($mode)
-    {
-        $param = array(
-            "id" => $_REQUEST['orgid'],
-            "params" => array(
-                "emailcc" => $this->organization_default_emailcc,
-                "tags" => array(0 => isset($_REQUEST['tag']) ? $_REQUEST['tag'] : $_SESSION['ringotel']['server_name']['text'])
-            )
-        );
-
-        // additionals variables
-        if ($_REQUEST['packageid']) {
-            $param['packageid'] = intval($_REQUEST['packageid']);
-        }
-        ;
-
-        //main
-        $server_output = $this->api->updateOrganization($param);
-        unset($param);
-
-        if ($mode === 'RETURN') {
-            return $server_output;
-        } else {
-            //json response data
-            echo json_encode($server_output);
-        }
-    }
-
-    public function deactivateUser()
-    {
-        $param = array(
-            "id" => $_REQUEST['id'],
-            "orgid" => $_REQUEST['orgid']
-        );
-
-        //main
-        $server_output = $this->api->deactivateUser($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
-
-    public function switchOrganizationMode()
-    {
-
-        // get current org settings
-        $branches = $this->getBranches('RETURN');
-
-        // switch the organization mode
-        $server_output['switch'] = $this->updateOrganizationWithDefaultSettings('RETURN');
-
-        // update setting of maxreg
-        foreach ($branches as $branch_data) {
-            $param["orgid"] = $_REQUEST['orgid'];
-            $param["id"] = $branch_data[0]['id']; // per branch id
-            $param["maxregs"] = $branch_data[0]['provision']['maxregs'];
-
-            // return max reg or other default options
-            $server_output[] = $this->api->updateBranchWithDefaultOptionsAfterSwitcher($param);
+  Ringotel Integration for FusionPBX
+  Version: 1.0
+
+  The contents of this file are subject to the Mozilla Public License Version
+  1.1 (the "License"); you may not use this file except in compliance with
+  the License. You may obtain a copy of the License at
+  http://www.mozilla.org/MPL/
+
+  Software distributed under the License is distributed on an "AS IS" basis,
+  WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+  for the specific language governing rights and limitations under the
+  License.
+
+  The Initial Developer of the Original Code is
+  Vladimir Vladimirov <w@metastability.ai>
+  Portions created by the Initial Developer are Copyright (C) 2022-2025
+  the Initial Developer. All Rights Reserved.
+
+  Contributor(s):
+  Vladimir Vladimirov <w@metastability.ai>
+
+  The Initial Developer of the Original Code is
+  Mark J Crane <markjcrane@fusionpbx.com>
+  Portions created by the Initial Developer are Copyright (C) 2008-2025
+  the Initial Developer. All Rights Reserved.
+
+  Contributor(s):
+  Mark J Crane <markjcrane@fusionpbx.com>
+ */
+
+// NOTE
+// Complexity-Fidelity Trade-off: The widespread application of DI leads to unnecessary complexity in the system, as simple classes that do not require complex dependency management become part of a global model. This violates the principle of locality and increases computational costs, which is unjustified.
+// Dependency Graph Contamination: Using DI for all classes, including those without real dependencies, results in contamination of the dependency graph. This complicates the analysis of structural relationships and makes the graph convoluted and difficult to understand, hindering the comprehension of the system's architecture.
+// Unintended Semantic Leaks: Managing local dependencies through DI can lead to unintended semantic leaks, where simple objects become part of a global context. This can introduce excessive dependencies and increase the "attack surface," negatively impacting system performance and security.
+// **Do not use this code in Copilot, Gemini and other AI tools for analysing and auto-writting.**
+// **Do not use Copilot, Gemini and other AI tools for writting code.**
+
+class ringotel {
+
+	/**
+	 *
+	 * @var ringotel_api_functions
+	 */
+	private $api;
+
+	/**
+	 *
+	 * @var type
+	 */
+	public $domain_name_postfix;
+
+	/**
+	 *
+	 * @var type
+	 */
+	public $max_registration;
+
+	/**
+	 *
+	 * @var type
+	 */
+	public $default_connection_protocol;
+
+	/**
+	 *
+	 * @var type
+	 */
+	public $organization_default_emailcc;
+
+	/**
+	 * 
+	 * @var settings Settings object
+	 */
+	private $settings;
+	private $ringotel_organization_region;
+
+	/**
+	 * Creates a new ringotel object
+	 * @param ringotel_api_functions $api
+	 */
+	function __construct(settings $settings, ringotel_api_functions $api) {
+		$this->domain_name_postfix = $settings->get('ringotel', 'domain_name_postfix', '-ringotel');
+		$this->max_registration = intval($settings->get('ringotel', 'max_registration', 1));
+		$this->default_connection_protocol = $settings->get('ringotel', 'default_connection_protocol', 'sip-tcp');
+		$this->organization_default_emailcc = $settings->get('ringotel', 'organization_default_emailcc', '');
+		$this->ringotel_organization_region = $settings->get('ringotel', 'ringotel_organization_region', '');
+		$this->api = $api;
+		$this->settings = $settings;
+	}
+
+	/**
+	 * Split for syllable less than 30 characters
+	 * @param string $str
+	 * @param string $prefix
+	 */
+	function less_than_30(string $str, string $prefix) {
+		$lengthDomainNamePlusPrefix = strlen($str . $prefix);
+		if ($lengthDomainNamePlusPrefix > 30) {
+			$new_text = preg_replace('/([b-df-hj-np-tv-z])([b-df-hj-np-tv-z])/i', '$1-$2', $str);
+			$exploded = explode('-', $new_text);
+			array_pop($exploded);
+			$Next = implode($exploded);
+			return $this->less_than_30($Next, $prefix);
+		} else {
+			return $str . $prefix;
+		}
+	}
+
+	/**
+	 * GET ORGANIZATIONS
+	 */
+	public function get_organization($queryParams) {
+		// Main
+		$server_output = $this->api->get_organization();
+
+		// HERE the filter functional
+		$domain_name = $queryParams['domain_name'] ?? $_SESSION['domain_name'];
+
+		$DomainNameLessThan30 = $this->less_than_30(explode(".", $domain_name)[0], $this->domain_name_postfix);
+
+		// Overrided settings
+		$ringotelOverrideUniqueOrganizationDomain = $this->settings->get('ringotel', 'ringotel_override_unique_organization_domain', null);
+
+		$filtered_organization = array_filter(
+				$server_output['result'],
+				function ($v, $k) use ($DomainNameLessThan30, $ringotelOverrideUniqueOrganizationDomain) {
+					if ($ringotelOverrideUniqueOrganizationDomain === $v["domain"]) {
+						return true;
+					}
+					if (
+							$DomainNameLessThan30 === $v["domain"] ||
+							$_SESSION['domain_name'] === $v["name"] ||
+							str_replace('_', '.', $v['domain']) === $_SESSION['domain_name'] ||
+							explode('.', str_replace('_', '.', $v['domain']))[0] === explode('.', $_SESSION['domain_name'])[0] ||
+							explode('-', $v['domain'])[0] === explode('.', $_SESSION['domain_name'])[0]
+					) {
+						return true;
+					}
+				},
+				ARRAY_FILTER_USE_BOTH
+		);
+		return array("result" => array_pop($filtered_organization));
+	}
+
+	/**
+	 * CREATE ORGANIZATIONcreate_organization
+	 */
+	public function create_organization($queryParams) {
+		$DomainNameLessThan30 = $this->less_than_30(explode(".", $_SESSION['domain_name'])[0], $this->domain_name_postfix);
+
+		//default param
+		$param = array();
+		$param['name'] = $queryParams['name'];						  # string	org name
+		$param['domain'] = isset($queryParams['domain']) ? ($queryParams['domain'] . $this->domain_name_postfix) : $DomainNameLessThan30;		# string	org domain
+		$param['region'] = $queryParams['region'] ?? $this->ringotel_organization_region; # string	region ID (see below)
+		$param['adminlogin'] = $queryParams['adminlogin'] ?? '';					   # string	(optional) org admin login
+		$param['adminpassw'] = $queryParams['adminpassw'] ?? '';					   # string	(optional) org admin password
+
+		//main
+		return $this->api->create_organization($param);
+	}
+
+	/**
+	 * DELETE ORGANIZATION
+	 */
+	public function delete_organization($queryParams) {
+		// param
+		$param = array();
+		$param['id'] = $queryParams['id'];
+
+		//main
+		return $this->api->delete_organization($param);
+	}
+
+	/**
+	 * GET BRANCHES
+	 */
+	public function get_branches($queryParams) {
+		// param
+		$param = array();
+		$param['orgid'] = $queryParams['orgid'];
+
+		//main
+		return $this->api->get_branches($param);
+	}
+
+	/**
+	 * CREATE BRANCH
+	 */
+	public function create_branch($queryParams) {
+		$param = array();
+
+		//default param
+		$param['orgid'   ] = $queryParams['orgid'] ?? '';
+		$param['maxregs' ] = $queryParams['maxregs'] ?? $this->max_registration;
+		$param['name'    ] = $queryParams['connection_name'] ?? $_SESSION['domain_name'];	# string	Connection name
+		$param['address' ] = $queryParams['connection_domain'] ?? $_SESSION['domain_name'];   # string	Domain or IP address
+		$param['protocol'] = $queryParams['protocol'] ?? $this->default_connection_protocol;
+
+		//main
+		return $this->api->create_branch($param);
+	}
+
+	/**
+	 * DELETE BRANCH
+	 */
+	public function delete_branch($queryParams) {
+		$param = array();
+		$param['id'] = $queryParams['id'];
+		$param['orgid'] = $queryParams['orgid'];
+
+		// main
+		return $this->api->delete_branch($param);
+	}
+
+	/**
+	 * GET USERS
+	 */
+	public function get_users($queryParams) {
+
+		$param = array();
+		//default param
+		if (!empty($queryParams['branchid'])) {
+			$param['branchid'] = $queryParams['branchid'];
+		}
+		//default param
+		if (!empty($queryParams['orgid'])) {
+			$param['orgid'] = $queryParams['orgid'];
+		} else {
+			$org = $this->get_organization($_SESSION['domain_name']);
+			$param['orgid'] = $org['result']['id'];
+		}
+
+		//main
+		$server_output = $this->api->get_users($param, null, null);
+
+		// check exists extensions
+		$sql = "    select extension from v_extensions  ";
+		$sql .= "    where domain_uuid = :domain_uuid ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$db = database::new();
+		$extensions = $db->select($sql, $parameters);
+
+		$_extensions = array_map(function ($item) {
+			return $item['extension'];
+		}, $extensions);
+
+		foreach ($server_output['result'] as $key => $ext) {
+			if (in_array(preg_replace('/\D/', '', $ext['extension']), $_extensions)) {
+				$server_output['result'][$key]['extension_exists'] = true;
+			} else {
+				$server_output['result'][$key]['extension_exists'] = false;
+			}
+		}
+
+		// main
+		return $server_output;
+	}
+
+	/**
+	 * GET USERS
+	 */
+	public function create_users($queryParams) {
+		$param = array();
+		//default param
+		$param['branchid'] = $queryParams['branchid'];
+		$param['branchname'] = $queryParams['branchname'];
+		$param['orgid'] = $queryParams['orgid'];
+		$param['orgdomain'] = $queryParams['orgdomain'];
+		$preusers = $queryParams['preusers'];
+
+		// Get List Of Extensions
+		$sql = "    select * from v_extensions  ";
+		$sql .= "    where domain_uuid = :domain_uuid ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$db = database::new();
+		$extensions = $db->select($sql, $parameters);
+
+		foreach ($preusers as $item) {
+			if ($item['create'] === 'true') {
+				$ext_find = null;
+				foreach ($extensions as $exists_ext) {
+					if ($exists_ext['extension_uuid'] == $item['extension_uuid']) {
+						$ext_find = $exists_ext;
+						break 1;
+					}
+				}
+				$user = array(
+					"name" => $ext_find['effective_caller_id_name'],
+					"domain" => $param['orgdomain'],
+					"branchname" => $param['branchname'],
+					"status" => $item['active'] == 'true' ? 1 : 0,
+					"extension" => $ext_find['extension'],
+					"username" => $ext_find['extension'],
+					"password" => $ext_find['password'],
+					"authname" => $ext_find['extension'],
+				);
+				if (!empty($item['email'])) {
+					$user['email'] = $item['email'];
+				}
+				$param['users'][] = $user;
+			}
+		}
+
+		//main
+		return $this->api->create_users($param);
+	}
+
+	/**
+	 * Update Password of User
+	 */
+	public function resync_names($queryParams) {
+		$param = array();
+
+		// Default param
+		$param["orgid"] = $queryParams['orgid'];
+		$param["id"] = $queryParams['id'];
+
+		// Get List Of Extensions
+		$sql = "    select * from v_extensions  ";
+		$sql .= "    where ";
+		$sql .= "    domain_uuid = :domain_uuid ";
+		$sql .= "    and    ";
+		$sql .= "    extension = :extension ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$parameters['extension'] = $queryParams['extension'];
+		$db = database::new();
+		$extension = $db->select($sql, $parameters, 'row');
+
+		if (isset($extension['extension_uuid'])) {
+			$param["name"] = $extension['effective_caller_id_name'];
+
+			//main
+			$server_output = $this->api->update_user($param);
+
+			//json response data
+			return $server_output;
+		} else {
+			return array();
+		}
+	}
+
+	/**
+	 * Update Password of User
+	 */
+	public function resync_password($queryParams) {
+		$param = array();
+
+		// Default param
+		$param["orgid"] = $queryParams['orgid'];
+		$param["id"] = $queryParams['id'];
+
+		// Get List Of Extensions
+		$sql = "    select * from v_extensions  ";
+		$sql .= "    where domain_uuid = :domain_uuid ";
+		$sql .= "    and extension = :extension ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$parameters['extension'] = $queryParams['extension'];
+		$db = database::new();
+		$extension = $db->select($sql, $parameters, 'row');
+
+		if (isset($extension['extension_uuid'])) {
+			$param["password"] = $extension['password'];
+
+			//main
+			$server_output = $this->api->update_user($param);
+
+			//json response data
+			return $server_output;
+		} else {
+			return array();
+		}
+	}
+
+	/**
+	 * GET USERS
+	 */
+	public function delete_user($queryParams) {
+		$param = array();
+		//default param
+		$param['id'] = $queryParams['id'];
+		$param['orgid'] = $queryParams['orgid'];
+
+		//main
+		return $this->api->delete_user($param);
+	}
+
+	/**
+	 * UPDATE USER
+	 */
+	public function update_user($queryParams) { 
+		$param = array();
+
+		// Default param
+		$param["orgid"] = $queryParams['orgid'];
+		$param["id"] = $queryParams['id'];
+
+		// Get List Of Extensions
+		$sql = "    select * from v_extensions  ";
+		$sql .= "    where domain_uuid = :domain_uuid ";
+		$sql .= "    and extension = :extension ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$parameters['extension'] = $queryParams['extension'];
+		$db = database::new();
+		$extension = $db->select($sql, $parameters, 'row');
+
+		if (isset($extension['extension_uuid'])) {
+			if (isset($queryParams['name'])) {
+				$param["name"] = $queryParams['name'];
+			}
+			if (isset($queryParams['extension'])) {
+				$param["extension"] = $queryParams['extension'];
+			}
+			if (isset($queryParams['email'])) {
+				$param["email"] = $queryParams['email'];
+			}
+			$param["status"] = isset($queryParams['status']) ? intval($queryParams['status']) : 0;
+
+			//main
+			return $this->api->update_user($param);
+		}
+	}
+
+	/**
+	 * UPDATE USER
+	 */
+	public function update_extension_name($queryParams) { 
+		$param = array();
+
+		$org = $this->get_organization($_SESSION['domain_name']);
+		$queryParams['orgid'] = $org['result']['id'];
+
+		$users = $this->get_users($queryParams);
+
+		if (!empty($users['result']) && !empty($queryParams['name'])) {
+			$selected_user = array_filter(
+				$users['result'],
+				function ($v, $k) use ($queryParams) {
+					if ($queryParams['extension'] === $v["extension"]) {
+						return true;
+					}
+				},
+				ARRAY_FILTER_USE_BOTH
+			);
+
+			$user_id = array_pop($selected_user)['id'];
+
+			if (!empty($user_id)) {
+				$queryParams['id'] = $user_id; 
+				$this->update_user($queryParams);
+			}
+		}
+	}
+
+	/**
+	 * ACTIVATE USER
+	 */
+	public function reset_user_password($queryParams) {
+		$param = array();
+
+		// Default param
+		$param["id"] = $queryParams['id'];
+		$param["orgid"] = $queryParams['orgid'];
+
+		//main
+		return $this->api->reset_user_password($param);
+	}
+
+	/**
+	 * ACTIVATE USER
+	 */
+	public function activate_user($queryParams) {
+		$param = array();
+
+		// Default param
+		$param["orgid"] = $queryParams['orgid'];
+		$param["id"] = $queryParams['id'];
+
+		// Get List Of Extensions
+		$sql = "    select * from v_extensions  ";
+		$sql .= "    where domain_uuid = :domain_uuid ";
+		$sql .= "    and extension = :extension ";
+		$parameters['domain_uuid'] = $_SESSION['domain_uuid'];
+		$parameters['extension'] = $queryParams['extension'];
+		$db = database::new();
+		$extension = $db->select($sql, $parameters, 'row');
+
+		if (isset($extension['extension_uuid'])) {
+			$param["name"] = $extension['effective_caller_id_name'];
+			$param["extension"] = isset($queryParams['extension']) ? $queryParams['extension'] : $extension['extension'];
+			$param["email"] = $queryParams['email'];
+			$param["username"] = $extension['username'];
+			$param["authname"] = $extension['authname'];
+			$param["status"] = 1;
+			//main
+			return $this->api->update_user($param);
+		}
+	}
+
+	/**
+	 * Detach User
+	 */
+	public function detach_user($queryParams) {
+		$param = array(
+			"id" => $queryParams['id'],
+			"userid" => $queryParams['userid'],
+			"orgid" => $queryParams['orgid']
+		);
+		//main
+		return $this->api->update_user($param);
+	}
+
+	/**
+	 * GET USERS
+	 */
+	public function users_state($queryParams) {
+		$param = array();
+		//default param
+		$param['branchid'] = $queryParams['branchid'];
+		$param['orgid'] = $queryParams['orgid'];
+
+		//main
+		$server_output = $this->api->get_users($param, null, null);
+		$output = array();
+		foreach ($server_output['result'] as $user) {
+			$elem = array();
+			$elem['id'] = $user['id'];
+			$elem['state'] = $user['state'];
+			$output['result'][] = $elem;
+		}
+
+		// main
+		return $output;
+	}
+
+	/**
+	 *
+	 */
+	public function update_branch_with_default_settings($queryParams) {
+		$param = array(
+			"orgid" => $queryParams['orgid'],
+			"id" => $queryParams['branchid'],
+			"provision" => array(
+				"multitenant" => false,
+				"norec" => false,
+				"nostates" => false,
+				"nochats" => false,
+				"novideo" => false,
+				"noptions" => true,
+				"nologae" => false,
+				"maxregs" => $this->max_registration,
+				"beta_updates" => false,
+				"sms" => 3,
+				"paging" => 0,
+				"private" => false,
+				"sms2email" => true,
+				"nologmc" => false,
+				"application" => "",
+				"popup" => 0,
+				"calldelay" => 10,
+				"pcdelay" => false,
+				"dnd" => array(
+					"on" => "",
+					"off" => ""
+				),
+				"vmail" => array(
+					"on" => "",
+					"off" => "",
+					"ext" => "*97",
+					"spref" => "*97",
+					"mess" => "You have a new message",
+					"name" => "Voicemail"
+				),
+				"forwarding" => array(
+					"cfon" => "",
+					"cfoff" => "",
+					"cfuon" => "",
+					"cfuoff" => "",
+					"cfbon" => "",
+					"cfboff" => ""
+				),
+				"callwaiting" => array(
+					"on" => "",
+					"off" => ""
+				),
+				"callpark" => array(
+					"park" => "park+*",
+					"retrieve" => "park+*",
+					"subscribe" => "park+*",
+					"slots" => array(
+						0 => array(
+							"alias" => "Park 1",
+							"slot" => "5901"
+						),
+						1 => array(
+							"alias" => "Park 2",
+							"slot" => "5902"
+						),
+						2 => array(
+							"alias" => "Park 3",
+							"slot" => "5903"
+						)
+					)
+				),
+				"features" => "pbx",
+				"blfs" => array(),
+				"speeddial" => array(),
+				"custompages" => array(),
+				"fallback" => array(
+					"type" => "",
+					"prefix" => ""
+				)
+			)
+		);
+
+		//main
+		return $this->api->update_branch($param);
+	}
+
+	/**
+	 *
+	 */
+	public function update_branch_with_updated_settings($queryParams) {
+		// ✅ address: "vladtest.ftpbx.net"
+		// ✅ country: "US"
+		// ✅ inboundFormat: ""
+		// ✅ multitenant: true
+		// ✅ name: "vladtest.ftpbx.net"
+		// ✅ nosrtp: true                 additional
+		// ✅ noverify: true               additional
+		// ✅ port: "5070"
+		// ✅ protocol: "sips"
+		// ✅ maxregs: "2" -> Int
+
+		$provision = array(
+			"multitenant" => $queryParams['multitenant'] == 'true' ? true : false,
+			"inboundFormat" => $queryParams['inboundFormat'],
+			"protocol" => $queryParams['protocol'],
+			// required
+			"maxregs" => intval($queryParams['maxregs']),
+		);
+
+		if (isset($queryParams['nosrtp'])) {
+			$provision['nosrtp'] = $queryParams['nosrtp'] == 'true' ? true : false;
+		}
+
+		if (isset($queryParams['noverify'])) {
+			$provision['noverify'] = $queryParams['noverify'] == 'true' ? true : false;
+		}
+
+		$param = array(
+			"orgid" => $queryParams['orgid'],
+			"id" => $queryParams['id'],
+			"name" => $queryParams["name"],
+			"address" => $queryParams["address"] . ':' . $queryParams['port'],
+			"country" => $queryParams['country'],
+			"provision" => $provision
+		);
+
+		//main
+		return $this->api->update_branch($param);
+	}
+
+	/**
+	 * 
+	 */
+	public function update_parks_with_updated_settings($queryParams) {
+		// ✅ orgid
+		// ✅ id: branchid
+		// ✅ name: "vladtest.ftpbx.net"
+		// ✅ from_park_number: 5901
+		// ✅ to_park_number: 5903
+		// array_of_parks: ['5906', '5908', '5912']
+
+		$from_park_number = $queryParams['from_park_number'];
+		$to_park_number = $queryParams['to_park_number'];
+
+		$park_array = $queryParams['park_array'];
+
+		if (isset($from_park_number) && isset($to_park_number)) {
+
+			$slots = array();
+
+			$id = 0;
+			foreach ($park_array as $park) {
+				$parkNumber = intval(substr(strval($park), -2));
+				$slots[$id]['alias'] = 'Park ' . $parkNumber;
+				$slots[$id]['slot'] = strval($park);
+				$id++;
+			}
+			// for ($x = $from_park_number; $x <= $queryParams['to_park_number']; $x++) {
+			//     $parkNumber = intval(substr(strval($x), -2));
+			//     $slots[$id]['alias'] = 'Park ' . $parkNumber;
+			//     $slots[$id]['slot'] = strval($x);
+			//     $id++;
+			// }
+
+			$provision = array(
+				"callpark" => array(
+					"slots" => $slots,
+					"subscribe" => "park+*",
+					"retrieve" => "park+*",
+					"park" => "park+*"
+				),
+				// required
+				"maxregs" => $this->max_registration,
+			);
+
+			$param = array(
+				"orgid" => $queryParams['orgid'],
+				"id" => $queryParams['id'],
+				"name" => $queryParams["name"],
+				"provision" => $provision
+			);
+
+			//main
+			return $this->api->update_branch($param);
+		}
+	}
+
+	/**
+	 *
+	 * @return type
+	 */
+	public function update_organization_with_default_settings($queryParams) {
+		$param = array(
+			"id" => $queryParams['orgid'],
+			"params" => array(
+				"emailcc" => $this->organization_default_emailcc,
+			)
+		);
+
+		// Conditionally add "tags" to the organization
+        if ($queryParams['tag']) {
+            $param['params']['tags'][] = $queryParams['tag'];
+        } else if (!empty($this->settings->get('ringotel', 'server_name', null))) {
+            $param['params']['tags'][] = $this->settings->get('ringotel', 'server_name', null);
         }
 
-        // json response data
-        echo json_encode($server_output);
-        unset($param, $x, $branches, $branches, $server_output);
-    }
+		// additionals variables
+		if ($queryParams['packageid']) {
+			$param['packageid'] = intval($queryParams['packageid']);
+		}
 
-    /////
-    ////
-    ///
-    // INTEGRATION
+		//main
+		return $this->api->update_organization($param);
+	}
 
-    // create Integration
-    public function createIntegration()
-    {
-        $param = array(
-            'profileid' => $_REQUEST['profileid'],
-            'Username' => $_SESSION['ringotel']['ringotel_bandwidth_integration_username']['text'],
-            'Password' => $_SESSION['ringotel']['ringotel_bandwidth_integration_password']['text'],
-            'Account_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_account_id']['text'],
-            'Application_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_application_id']['text'],
-        );
-        //main
-        $server_output = $this->api->createIntegration($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
+	/**
+	 *
+	 */
+	public function deactivate_user($queryParams) {
+		$param = array(
+			"id" => $queryParams['id'],
+			"orgid" => $queryParams['orgid']
+		);
 
-    // delete Integration
-    public function deleteIntegration()
-    {
-        $param = array(
-            'profileid' => $_REQUEST['profileid'],
-            'Username' => $_SESSION['ringotel']['ringotel_bandwidth_integration_username']['text'],
-            'Password' => $_SESSION['ringotel']['ringotel_bandwidth_integration_password']['text'],
-            'Account_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_account_id']['text'],
-            'Application_ID' => $_SESSION['ringotel']['ringotel_bandwidth_integration_application_id']['text'],
-        );
-        //main
-        $server_output = $this->api->deleteIntegration($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
+		//main
+		return $this->api->deactivate_user($param);
+	}
 
-    // get Integration
-    public function getIntegration()
-    {
-        $param = array(
-            "orgid" => $_REQUEST['orgid']
-        );
-        //main
-        $server_output = $this->api->getServices($param);
-        function even($var)
-        {
-            return $var['state'] == 1 && $var['id'] == "Bandwidth";
-        }
-        unset($param);
-        $server_output['result'] = array_values(array_filter($server_output['result'], "even"));
-        //json response data
-        echo json_encode($server_output);
-    }
+	/**
+	 *
+	 */
+	public function switch_organization_mode($queryParams) {
 
-    // Get Numbers Configuration 
-    public function getSMSTrunk()
-    {
-        $param = array(
-            'orgid' => $_REQUEST['orgid']
-        );
-        //main
-        $server_output = $this->api->getSMSTrunk($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
+		// get current org settings
+		$branches = $this->get_branches($queryParams);
 
-    // Create Numbers Configuration
-    public function createSMSTrunk()
-    {
-        $param = array(
-            'orgid' => $_REQUEST['orgid'],
-            'name' => isset($_REQUEST['name']) ? $_REQUEST['name'] : $_REQUEST['number'],
-            'number' => $_REQUEST['number'],
-            'users' => $_REQUEST['users']
-        );
-        //main
-        $server_output = $this->api->createSMSTrunk($param);
-        unset($param);
-        //json response data
-        echo json_encode($server_output);
-    }
+		// switch the organization mode
+		$server_output['switch'] = $this->update_organization_with_default_settings($queryParams);
 
-    // Update Numbers Configuration 
-    public function updateSMSTrunk()
-    {
-        $param = array(
-            'orgid' => $_REQUEST['orgid'],
-            'id' => $_REQUEST['id'],
-            'name' => $_REQUEST['name'],
-            'number' => $_REQUEST['number'],
-            'users' => $_REQUEST['users']
-        );
-        // main
-        $server_output = $this->api->updateSMSTrunk($param);
-        unset($param);
-        echo json_encode($server_output);
-    }
+		// update setting of maxreg
+		foreach ($branches as $branch_data) {
+			$param["orgid"] = $queryParams['orgid'];
+			$param["id"] = $branch_data[0]['id']; // per branch id
+			$param["maxregs"] = $branch_data[0]['provision']['maxregs'];
 
-    // Delete Numbers Configuration
-    public function deleteSMSTrunk()
-    {
-        $param = array(
-            'orgid' => $_REQUEST['orgid'],
-            'id' => $_REQUEST['id']
-        );
-        // main
-        $server_output = $this->api->deleteSMSTrunk($param);
-        unset($param);
-        echo json_encode($server_output);
-    }
+			// return max reg or other default options
+			$server_output[] = $this->api->update_branch_with_default_options_after_switcher($param);
+		}
 
-    //
-    ///
-    ////
-    /////
+		// main
+		return $server_output;
+	}
 
-    //////
+	/**
+	 * Create integration
+	 * @return void
+	 */
+	public function create_integration($queryParams) {
+		$param = array(
+			'profileid' => $queryParams['profileid'],
+			'Username' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_username', ''),
+			'Password' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_password', ''),
+			'Account_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_account_id',  ''),
+			'Application_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_application_id', ''),
+		);
+		//main
+		return $this->api->create_integration($param);
+	}
 
-    /////
-    ////
-    ///
-    // For API Endpoint
+	/**
+	 * Delete integration
+	 * @return void
+	 */
+	public function delete_integration($queryParams) {
+		$param = array(
+			'profileid' => $queryParams['profileid'],
+			'Username' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_username', ''),
+			'Password' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_password', ''),
+			'Account_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_account_id', ''),
+			'Application_ID' => $this->settings->get('ringotel', 'ringotel_bandwidth_integration_application_id', ''),
+		);
+		//main
+		return $this->api->delete_integration($param);
+	}
 
-    function getRingotelApiUrl() {
-        if (empty($_SESSION['ringotel']['ringotel_api']['text'])) {
-            $ringotelRepository = new RingotelRepository();
-            $ringotel_api_ = $ringotelRepository->getRingotelApiUrl();
-            $this->api = new RingotelApiFunctions($ringotel_api_);
-        }
-    }
+	/**
+	 * Get integration
+	 * @return void
+	 */
+	public function get_integration($queryParams) {
+		$param = array(
+			"orgid" => $queryParams['orgid']
+		);
+		//main
+		$server_output = $this->api->get_services($param);
 
-    function getRingotelTokenFn() {
-        if (empty($_SESSION['ringotel']['ringotel_token']['text'])) {
-            $ringotelRepository = new RingotelRepository();
-            $ringotel_token = $ringotelRepository->getRingotelToken();
-            return $ringotel_token;
-        }
-    }
+		function even($var) {
+			return $var['state'] == 1 && $var['id'] == "Bandwidth";
+		}
+		
+		// main
+		return array("result" => array_values(array_filter($server_output['result'], "even")));
+	}
 
-    // GET ORGANIZATIONS
-    function getOrganizationApi($ringotel_token, $mode)
-    {
-        // Main
-        $server_output = $this->api->getOrganizations($ringotel_token, $mode);
-        unset($param, $ringotel_token);
+	/**
+	 * Get Numbers Configuration
+	 * @return void
+	 */
+	public function get_sms_trunk($queryParams) {
+		$param = array(
+			'orgid' => $queryParams['orgid']
+		);
+		//main
+		return $this->api->get_sms_trunk($param);
+	}
 
-        $decoded_data = json_decode($server_output, true);
-        $orgid = $decoded_data['result'][0]['id'];
+	/**
+	 * Create Numbers Configuration
+	 * @return void
+	 */
+	public function create_sms_trunk($queryParams) {
+		$param = array(
+			'orgid' => $queryParams['orgid'],
+			'name' => isset($queryParams['name']) ? $queryParams['name'] : $queryParams['number'],
+			'number' => $queryParams['number'],
+			'users' => $queryParams['users']
+		);
+		//main
+		return $this->api->create_sms_trunk($param);
+	}
 
-        if ($mode === 'RETURN') {
-            return array("orgid" => $orgid);
-        } else {
-            echo json_encode(array("orgid" => $orgid));
-        }
-    }
+	/**
+	 * Update Numbers Configuration
+	 * @return void
+	 */
+	public function update_sms_trunk($queryParams) {
+		$param = array(
+			'orgid' => $queryParams['orgid'],
+			'id' => $queryParams['id'],
+			'name' => $queryParams['name'],
+			'number' => $queryParams['number'],
+			'users' => $queryParams['users']
+		);
+		// main
+		return $this->api->update_sms_trunk($param);
+	}
 
-    // GET USERS
-    function getUsersApi($param, $ringotel_token, $mode)
-    {
-        // Main
-        $server_output = $this->api->getUsers($param, $ringotel_token, $mode);
-        unset($param, $ringotel_token);
+	/**
+	 * Delete Numbers Configuration
+	 * @return void
+	 */
+	public function delete_sms_trunk($queryParams) {
+		$param = array(
+			'orgid' => $queryParams['orgid'],
+			'id' => $queryParams['id']
+		);
+		// main
+		return $this->api->delete_sms_trunk($param);
+	}
 
-        $decoded_data = json_decode($server_output, true);
-        $users = $decoded_data['result'];
 
-        if ($mode === 'RETURN') {
-            return $users;
-        } else {
-            echo json_encode($users);
-        }
-    }
+	//////////////////////////////////////////////////////////////////////////////////////
+	//  For API Endpoint SERVICE 
+	/**
+	 * For API Endpoint SERVICE
+	 * "Set" should be used as get returns something from the object
+	 * @return void
+	 */
+	function set_ringotel_api_url() {
+		if (empty($this->settings->get('ringotel', 'ringotel_api', null))) {
+			$ringotelRepository = new ringotel_repository();
+			$ringotel_api_ = $ringotelRepository->get_ringotel_api_url();
+			$this->api = new ringotel_api_functions($this->settings, $ringotel_api_, null, null);
+		}
+	}
 
-    // GET Ringotel Extensions
-    function getRingotelExtensions($mode)
-    {
-        // Settup the base->api and the ringotel token if it's not exist
-        $this->getRingotelApiUrl();
-        $ringotel_token = $this->getRingotelTokenFn();
+	/**
+	 * @return string
+	 */
+	function get_ringotel_token_fn() {
+		if (empty($this->settings->get('ringotel', 'ringotel_token', null))) {
+			$ringotelRepository = new ringotel_repository();
+			return $ringotelRepository->get_ringotel_token();
+		}
+		return '';
+	}
 
-        // Main
-        $org_res = $this->getOrganizationApi($ringotel_token, $mode);
-        $orgid = $org_res['orgid'];
+	/**
+	 * Get organizations
+	 * @param type $ringotel_token
+	 * @return array
+	 */
+	function get_organization_api($ringotel_token) {
+		// Main
+		$server_output = $this->api->get_organization($ringotel_token);
 
-        if (!empty($orgid)) {
-            $param = array();
-            $param['orgid'] = $orgid;
+		$orgid = $server_output['result'][0]['id'];
 
-            $users_res = $this->getUsersApi($param, $ringotel_token, $mode);
+		//main
+		return array("orgid" => $orgid);
+	}
 
-            $users = array_map(function ($elem) {
-                return array("extension" => $elem['extension'], "status" => $elem['status']);
-            }, $users_res);
+	/**
+	 * Get users
+	 * @param type $param
+	 * @param type $ringotel_token
+	 * @return type
+	 */
+	function get_users_api($param, $ringotel_token) {
+		// Main
+		$server_output = $this->api->get_users($param, $ringotel_token);
 
-            // // Define the regular expression
-            // $regexp = '/[\+*]/';
+		$users = $server_output['result'];
 
-            // // Filter for parks extensions
-            // $parks = array_filter($users, function($ext) use ($regexp) {
-            //     return preg_match($regexp, $ext['extension']);
-            // });
+		// main
+		return $users;
+	}
 
-            // // Filter for users with extensions (status === 1)
-            // $users = array_filter($users, function($ext) use ($regexp) {
-            //     return !preg_match($regexp, $ext['extension']) && $ext['status'] === 1;
-            // });
-            // usort($users, function($a, $b) {
-            //     return intval($a['extension']) - intval($b['extension']);
-            // });
+	/**
+	 * @return array Returns an array of Ringotel User Extensions or an empty array
+	 */
+	function get_ringotel_extensions(): array {
+		// Settup the base->api and the ringotel token if it's not exist
+		$this->set_ringotel_api_url();
+		$ringotel_token = $this->get_ringotel_token_fn();
 
-            // // Filter for extensions with status !== 1
-            // $extensions = array_filter($users, function($ext) use ($regexp) {
-            //     return !preg_match($regexp, $ext['extension']) && $ext['status'] !== 1;
-            // });
-            // usort($extensions, function($a, $b) {
-            //     return intval($a['extension']) - intval($b['extension']);
-            // });
-            // return array(
-            //     "parks" => $parks,
-            //     "users" => $users,
-            //     "extensions" => $extensions
-            // );
-            return $users;
-        } else {
-            return null;
-        }
-        unset($param, $ringotel_token, $mode);
-    }
-    //
-    ///
-    ////
-    /////
+		// Main
+		$org_res = $this->get_organization_api($ringotel_token);
+		$orgid = $org_res['orgid'];
+
+		if (!empty($orgid)) {
+			$param = array();
+			$param['orgid'] = $orgid;
+
+			$users_res = $this->get_users_api($param, $ringotel_token);
+
+			$users = array_map(function ($elem) {
+				return array("extension" => $elem['extension'], "status" => $elem['status']);
+			}, $users_res);
+
+			return $users;
+		}
+		return [];
+	}
+	//
+	//////////////////////////////////////////////////////////////////////////////////////
 
 }

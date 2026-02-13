@@ -1,6 +1,6 @@
 <?php
 
-$apps[$x]['menu'][0]['title']['en-us'] = "Ringotel";
+$apps[$x]['menu'][0]['title']['en-us'] = ucwords(str_replace(['-', '_'], ' ', basename(dirname(__FILE__))));
 $apps[$x]['menu'][0]['title']['es-cl'] = "";
 $apps[$x]['menu'][0]['title']['es-mx'] = "";
 $apps[$x]['menu'][0]['title']['fr-fr'] = "";
@@ -17,7 +17,7 @@ $apps[$x]['menu'][0]['title']['he'] = "";
 $apps[$x]['menu'][0]['uuid'] = "dfc8340a-188b-4780-9c7a-19294ec55aef";
 $apps[$x]['menu'][0]['parent_uuid'] = "fd29e39c-c936-f5fc-8e2b-611681b266b5";
 $apps[$x]['menu'][0]['category'] = "internal";
-$apps[$x]['menu'][0]['path'] = "/app/ringotel/index.php";
+$apps[$x]['menu'][0]['path'] = "/app/" . basename(dirname(__FILE__)) . "/index.php";
 $apps[$x]['menu'][0]['groups'][] = "superadmin";
 // $apps[$x]['menu'][0]['groups'][] = "admin";
 

@@ -13,6 +13,11 @@ php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions
 php /var/www/fusionpbx/core/upgrade/upgrade.php
 ```
 
+Customize the Application Display Name
+```
+sed -i "s/\$apps\[\$x\]\['name'\] = \"Ringotel\";/\$apps\[\$x\]\['name'\] = \"<Your Display Name>\";/" /var/www/fusionpbx/app/<your-folder-name>/app_config.php
+```
+
 Optional: Ringotel could be installed into a different directory such as rt.
 ```
 git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git rt

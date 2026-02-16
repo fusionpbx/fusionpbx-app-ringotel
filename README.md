@@ -13,7 +13,7 @@ php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions
 php /var/www/fusionpbx/core/upgrade/upgrade.php
 ```
 
-**Customize the display name** (Change `<Your Display Name>` to what you want it to be):
+**Customize the display name** (Change `<Your Display Name>` and `<your-folder-name>`to what you want it to be):
 ```
 sed -i "s/\$apps\[\$x\]\['name'\] = \"Ringotel\";/\$apps\[\$x\]\['name'\] = \"<Your Display Name>\";/" /var/www/fusionpbx/app/<your-folder-name>/app_config.php
 ```

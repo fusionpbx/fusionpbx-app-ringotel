@@ -4103,7 +4103,7 @@ echo '</style>';
 			$('#email_for_reset_password').attr('data-extension', extension);
 			$('#email_for_reset_password').attr('data-orgid', orgid);
 
-			// AUTO-FILL THE EMAIL
+			// Auto-fill the email
 			if (email && email.trim() !== '') {
 				$('#email_for_reset_password').val(email);
 				$('#reset_user_password_button').attr('disabled', false); // Enable the button since we have an email

@@ -1,7 +1,7 @@
 <?php 
 
 	//application details
-    $apps[$x]['name'] = ucwords(str_replace(['-', '_'], ' ', basename(__DIR__)));
+    $apps[$x]['name'] = "Ringotel";
     $apps[$x]['uuid'] = "f19f8e69-491b-46d0-9b4f-6599b1756e55";
     $apps[$x]['category'] = "";
     $apps[$x]['subcategory'] = "";

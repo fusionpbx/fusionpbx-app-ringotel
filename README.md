@@ -11,6 +11,7 @@ git clone https://github.com/fusionpbx/fusionpbx-app-ringotel.git ringotel
 git config --global --add safe.directory /var/www/fusionpbx/app/ringotel
 php /var/www/fusionpbx/core/upgrade/upgrade.php --permissions
 php /var/www/fusionpbx/core/upgrade/upgrade.php
+php /var/www/fusionpbx/core/upgrade/upgrade.php menu default
 ```
 
 **Customize the display name** (Change `<Your Display Name>` and `<your-folder-name>`to what you want it to be):

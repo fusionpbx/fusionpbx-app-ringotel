@@ -1,6 +1,12 @@
 
 <?php
-
+// This file is included from app/extensions/extensions.php, which does not
+// run the ringotel app bootstrap, so $application_directory is unset here.
+// Derive it from this file's own location so the service.php URLs resolve
+// in either context (also respects a custom app directory name).
+if (empty($application_directory)) {
+	$application_directory = basename(__DIR__);
+}
 // The Ringotel Checker
 if (!permission_exists("extension_ringotel")) {
     $reject_ringotel = false;

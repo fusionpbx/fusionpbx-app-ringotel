@@ -549,6 +549,222 @@ class ringotel {
 	}
 
 	/**
+	 * GET CONTACTS
+	 * Shared organization contacts (the "Manage contacts" list in the Ringotel portal).
+	 */
+	public function get_contacts($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+
+		//main
+		$server_output = $this->api->get_contacts(array('orgid' => $orgid));
+
+		// keep only the contacts owned by the organization (the shared directory);
+		// contacts owned by a connection or created by devices are not managed here
+		$contacts = array();
+		foreach ($server_output['result'] as $contact) {
+			if (isset($contact['ownerid']) && (string)$contact['ownerid'] === (string)$orgid) {
+				$contacts[] = $contact;
+			}
+		}
+		usort($contacts, function ($a, $b) {
+			return strcasecmp($a['name'] ?? '', $b['name'] ?? '');
+		});
+		$server_output['result'] = $contacts;
+
+		// main
+		return $server_output;
+	}
+
+	/**
+	 * CREATE CONTACT
+	 */
+	public function create_contact($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+		$contact = $this->build_contact($queryParams);
+		if (empty($contact['name'])) {
+			return array('success' => false, 'data' => 'Contact name is required.');
+		}
+
+		//main
+		return $this->api->import_contacts(array(
+			'orgid' => $orgid,
+			'list' => array($contact)
+		));
+	}
+
+	/**
+	 * UPDATE CONTACT
+	 * Note: Ringotel replaces the whole "info" block, so the full contact is sent every time.
+	 */
+	public function update_contact($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+		if (empty($queryParams['id'])) {
+			return array('success' => false, 'data' => 'Contact id is required.');
+		}
+		$contact = $this->build_contact($queryParams);
+		if (empty($contact['name'])) {
+			return array('success' => false, 'data' => 'Contact name is required.');
+		}
+		$contact['id'] = $queryParams['id'];
+
+		//main
+		return $this->api->update_contacts(array(
+			'orgid' => $orgid,
+			'list' => array($contact)
+		));
+	}
+
+	/**
+	 * IMPORT CONTACTS (bulk create)
+	 * "contacts" is an array of contacts (name, mobile, phone, fax, email, organization, position, department, about).
+	 * Rows without a name are skipped and reported in "skipped".
+	 */
+	public function import_contacts($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+		$rows = (!empty($queryParams['contacts']) && is_array($queryParams['contacts'])) ? $queryParams['contacts'] : array();
+		$list = array();
+		$skipped = 0;
+		foreach ($rows as $row) {
+			if (!is_array($row)) {
+				continue;
+			}
+			$contact = $this->build_contact($row);
+			if ($contact['name'] === '') {
+				$skipped++;
+				continue;
+			}
+			$list[] = $contact;
+		}
+		if (empty($list)) {
+			return array('success' => false, 'data' => 'No contacts to import (every row is missing a name).');
+		}
+
+		//main
+		$server_output = $this->api->import_contacts(array(
+			'orgid' => $orgid,
+			'list' => $list
+		));
+		$server_output['imported'] = count($list);
+		$server_output['skipped'] = $skipped;
+		return $server_output;
+	}
+
+	/**
+	 * UPDATE CONTACTS (bulk update)
+	 * "contacts" is an array of full contacts, each with its "id".
+	 * Ringotel replaces the whole "info" block, so every field of each contact must be sent.
+	 */
+	public function update_contacts($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+		$rows = (!empty($queryParams['contacts']) && is_array($queryParams['contacts'])) ? $queryParams['contacts'] : array();
+		$list = array();
+		foreach ($rows as $row) {
+			if (!is_array($row) || empty($row['id'])) {
+				continue;
+			}
+			$contact = $this->build_contact($row);
+			if ($contact['name'] === '') {
+				return array('success' => false, 'data' => 'Contact name is required for every contact.');
+			}
+			$contact['id'] = (string)$row['id'];
+			$list[] = $contact;
+		}
+		if (empty($list)) {
+			return array('success' => false, 'data' => 'No contacts to update.');
+		}
+
+		//main
+		$server_output = $this->api->update_contacts(array(
+			'orgid' => $orgid,
+			'list' => $list
+		));
+		$server_output['updated'] = count($list);
+		return $server_output;
+	}
+
+	/**
+	 * DELETE CONTACT(S)
+	 * Accepts a single "id" or an "ids" array.
+	 */
+	public function delete_contact($queryParams) {
+		$orgid = $this->resolve_contact_orgid($queryParams);
+		$ids = array();
+		if (!empty($queryParams['ids']) && is_array($queryParams['ids'])) {
+			$ids = array_values(array_filter(array_map('strval', $queryParams['ids'])));
+		} elseif (!empty($queryParams['id'])) {
+			$ids = array((string)$queryParams['id']);
+		}
+		if (empty($ids)) {
+			return array('success' => false, 'data' => 'Contact id is required.');
+		}
+
+		//main
+		return $this->api->delete_contacts(array(
+			'orgid' => $orgid,
+			'list' => $ids
+		));
+	}
+
+	/**
+	 * Organization id for contact requests: the one passed in, or the domain's organization
+	 */
+	private function resolve_contact_orgid($queryParams) {
+		if (!empty($queryParams['orgid'])) {
+			return $queryParams['orgid'];
+		}
+		$org = $this->get_organization($_SESSION['domain_name']);
+		$orgid = $org['result']['id'] ?? '';
+		if (empty($orgid)) {
+			// contacts belong to an organization; without one there is nothing to manage
+			echo json_encode(array('success' => false, 'data' => 'No Ringotel organization exists for this domain yet.'));
+			exit;
+		}
+		return $orgid;
+	}
+
+	/**
+	 * Build a Ringotel contact (name + info) from the request.
+	 * List fields (mobile, phone, fax, email) accept an array or a comma separated string.
+	 * The request values arrive html-escaped from service.php, so they are decoded before being stored.
+	 */
+	private function build_contact($queryParams): array {
+		$clean = function ($value) {
+			return trim(htmlspecialchars_decode((string)$value, ENT_QUOTES));
+		};
+
+		$info = array();
+		foreach (array('mobile', 'phone', 'fax', 'email') as $key) {
+			$raw = $queryParams[$key] ?? array();
+			if (!is_array($raw)) {
+				$raw = explode(',', (string)$raw);
+			}
+			$values = array();
+			foreach ($raw as $value) {
+				$value = $clean($value);
+				if ($value !== '') {
+					$values[] = $value;
+				}
+			}
+			if (!empty($values)) {
+				$info[$key] = array_values(array_unique($values));
+			}
+		}
+		foreach (array('organization', 'position', 'department', 'about') as $key) {
+			if (isset($queryParams[$key])) {
+				$value = $clean($queryParams[$key]);
+				if ($value !== '') {
+					$info[$key] = $value;
+				}
+			}
+		}
+
+		return array(
+			'name' => $clean($queryParams['name'] ?? ''),
+			'info' => $info
+		);
+	}
+
+	/**
 	 *
 	 */
 	public function update_branch_with_default_settings($queryParams) {

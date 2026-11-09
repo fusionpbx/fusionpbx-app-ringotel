@@ -1795,7 +1795,7 @@ echo '</style>';
 					console.table(' -------> data', data);
 					await $.ajax({
 						url: "/app/<?php echo $application_directory; ?>/service.php?method=update_parks_with_updated_settings",
-						type: "get",
+						type: "post",
 						cache: true,
 						data,
 						success: function (response) {
@@ -2698,7 +2698,7 @@ echo '</style>';
 										<i id="edit_user_icon_${id}" class="fa fa-edit" aria-hidden="true"></i>
 										<span style="padding: 0px 5px 0px 2px;">Edit</span>
 									</button>
-									
+
 								` : ''}
 								<a id="delete_user_${id}" data="${id}" data-account="${branchid}" data-type-code="${TYPE_CODE}" class="delete_user" style="cursor: pointer;margin-bottom: 0rem;padding: 0.45rem;width: 100%;color:#cb0000;">
 									<i class="fa fa-trash" aria-hidden="true" style="padding: 0px 4px 0px 1px;"></i>
@@ -2748,7 +2748,7 @@ echo '</style>';
 	const optionalUsersEvent = () => {
 		// clear event listeners
 		$('.options_user').off('click');
-		// Bind Event Listener [Options User] 
+		// Bind Event Listener [Options User]
 		$('.options_user').on('click', (function (e) {
 			const id = e.currentTarget.id.split('_').pop();
 			$('.user_card_options').slideUp(50);
@@ -2848,7 +2848,7 @@ echo '</style>';
 	const reInitActivateForExtEvent = () => {
 		// clear events for ext_activate
 		$('.ext_activate').off('click');
-		// set activate for extension 
+		// set activate for extension
 		$('.ext_activate').on('click', ((e) => {
 			const uuid = e.target.getAttribute('data-uuid');
 			if ($('#ext_email_' + uuid).val().trim()) {
@@ -2864,7 +2864,7 @@ echo '</style>';
 	};
 
 	const createListExistExtensions = () => {
-		const extensionsPHP = <?php echo json_encode($extensions) ?>;
+		const extensionsPHP = <?php echo json_encode($extensions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
 		// console.log('[extensionsPHP]', extensionsPHP);
 		const extensionsPHPListTemplated = extensionsPHP?.map((ext) => {
 			return ExistsExtensionTemplate({
@@ -4210,7 +4210,7 @@ echo '</style>';
 
 	const voicemailEmailByExtension = (() => {
 		const map = {};
-		const src = <?php echo json_encode($extensions); ?> || [];
+		const src = <?php echo json_encode($extensions, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?> || [];
 		src.forEach((ext) => {
 			if (ext && ext.extension) {
 				map[ext.extension] = firstEmail(ext.voicemail_mail_to);
@@ -4247,7 +4247,7 @@ echo '</style>';
 			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
 			const extension = el.currentTarget.getAttribute('data-extension');
 
-			// update Password of User 
+			// update Password of User
 			const data = { orgid, id, extension };
 			// console.log(' [reSyncPassword] data', data);
 			$.ajax({
@@ -4462,7 +4462,7 @@ echo '</style>';
 					if (result) {
 						// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
 						getUsersWithUpdateElements();
-						// 
+
 						// UPDATE STATE OF EXISTS INTEGRATIONS
 						getIntegration();
 					}

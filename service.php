@@ -36,8 +36,8 @@ require_once dirname(__DIR__, 2) . '/resources/require.php';
 // check auth
 require_once dirname(__DIR__, 2) . '/resources/check_auth.php';
 
-// check permissions
-if (!permission_exists('ringotel')) {
+// check permissions ("ringotel" opens the app; the per-method check below splits extensions and contacts)
+if (!(permission_exists('ringotel') || if_group('superadmin'))) {
     echo "access denied";
     exit;
 }
@@ -69,11 +69,73 @@ if (!empty($_POST)) {
     }
 }
 
-if (!permission_exists('ringotel') || empty($queryParams['method'])) {
+if (empty($queryParams['method'])) {
     die();
 }
 // Extract the requested method
 $object_method = $queryParams['method'];
+
+// Permission per method.
+//   Contacts:   "ringotel_contacts"
+//   Everything else needs "ringotel_extensions" (view) plus, for changes, one of
+//   "ringotel_extension_add", "ringotel_extension_edit" or "ringotel_extension_delete".
+// A method listed with several permissions is allowed when the user holds any of them
+// (the "apply default settings" calls run right after creating an organization or connection).
+$contact_methods = ['get_contacts', 'create_contact', 'update_contact', 'delete_contact', 'import_contacts', 'update_contacts'];
+$method_permissions = [
+    // view
+    'get_organization' => [], 'get_branches' => [], 'get_users' => [], 'users_state' => [],
+    'get_integration' => [], 'get_sms_trunk' => [],
+    // add
+    'create_organization' => ['ringotel_extension_add'],
+    'create_branch' => ['ringotel_extension_add'],
+    'create_users' => ['ringotel_extension_add'],
+    'create_integration' => ['ringotel_extension_add'],
+    'create_sms_trunk' => ['ringotel_extension_add'],
+    'update_organization_with_default_settings' => ['ringotel_extension_add', 'ringotel_extension_edit'],
+    'update_branch_with_default_settings' => ['ringotel_extension_add', 'ringotel_extension_edit'],
+    // edit
+    'update_user' => ['ringotel_extension_edit'],
+    'update_extension_name' => ['ringotel_extension_edit'],
+    'resync_names' => ['ringotel_extension_edit'],
+    'resync_password' => ['ringotel_extension_edit'],
+    'activate_user' => ['ringotel_extension_edit'],
+    'deactivate_user' => ['ringotel_extension_edit'],
+    'reset_user_password' => ['ringotel_extension_edit'],
+    'update_branch_with_updated_settings' => ['ringotel_extension_edit'],
+    'update_parks_with_updated_settings' => ['ringotel_extension_edit'],
+    'switch_organization_mode' => ['ringotel_extension_edit'],
+    'update_sms_trunk' => ['ringotel_extension_edit'],
+    // delete
+    'delete_organization' => ['ringotel_extension_delete'],
+    'delete_branch' => ['ringotel_extension_delete'],
+    'delete_user' => ['ringotel_extension_delete'],
+    'detach_user' => ['ringotel_extension_delete'],
+    'delete_integration' => ['ringotel_extension_delete'],
+    'delete_sms_trunk' => ['ringotel_extension_delete'],
+];
+$has_any = function (array $names) {
+    foreach ($names as $name) {
+        if (permission_exists($name)) {
+            return true;
+        }
+    }
+    return false;
+};
+if (!if_group('superadmin')) {
+    if (in_array($object_method, $contact_methods)) {
+        $allowed = permission_exists('ringotel_contacts');
+    } elseif (array_key_exists($object_method, $method_permissions)) {
+        $allowed = permission_exists('ringotel_extensions')
+            && (empty($method_permissions[$object_method]) || $has_any($method_permissions[$object_method]));
+    } else {
+        $allowed = false;
+    }
+    if (!$allowed) {
+        echo json_encode(array('success' => false, 'data' => 'access denied: you do not have permission for this action'));
+        exit;
+    }
+}
 $valid_methods = [
     'get_organization', 'create_organization', 'delete_organization',
     'get_branches', 'create_branch', 'delete_branch',
@@ -84,7 +146,8 @@ $valid_methods = [
     'activate_user', 'deactivate_user', 'reset_user_password', 'switch_organization_mode',
     'create_integration', 'delete_integration', 'get_integration',
     'get_sms_trunk', 'create_sms_trunk', 'update_sms_trunk', 'delete_sms_trunk',
-    'update_extension_name'
+    'update_extension_name',
+    'get_contacts', 'create_contact', 'update_contact', 'delete_contact', 'import_contacts', 'update_contacts'
 ];
 
 $integration = in_array($object_method, $valid_methods) ? 'INTEGRATION' : null;

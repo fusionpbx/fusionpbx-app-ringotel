@@ -393,6 +393,70 @@ class ringotel_api_functions {
 	/////
 	////
 	///
+	// CONTACTS (shared organization directory, "Manage contacts" in the Ringotel portal)
+
+	/**
+	 * Get Contacts of an organization
+	 * @param array $param orgid
+	 */
+	public function get_contacts(array $param) {
+		$parameters = array(
+			"method" => "getContacts",
+			"params" => array(
+				"orgid" => $param['orgid']
+			)
+		);
+		return $this->ringotel_middleware_manager->handle($this->curl->post($this->baseUrl, $parameters));
+	}
+
+	/**
+	 * Import (create) Contacts
+	 * @param array $param orgid, list => array of contacts (name, info)
+	 */
+	public function import_contacts(array $param) {
+		$parameters = array(
+			"method" => "importContacts",
+			"params" => array(
+				"orgid" => $param['orgid'],
+				"list" => $param['list']
+			)
+		);
+		return $this->ringotel_middleware_manager->handle($this->curl->post($this->baseUrl, $parameters));
+	}
+
+	/**
+	 * Update Contacts
+	 * @param array $param orgid, list => array of contacts (id, name, info)
+	 */
+	public function update_contacts(array $param) {
+		$parameters = array(
+			"method" => "updateContacts",
+			"params" => array(
+				"orgid" => $param['orgid'],
+				"list" => $param['list']
+			)
+		);
+		return $this->ringotel_middleware_manager->handle($this->curl->post($this->baseUrl, $parameters));
+	}
+
+	/**
+	 * Delete Contacts
+	 * @param array $param orgid, list => array of contact ids
+	 */
+	public function delete_contacts(array $param) {
+		$parameters = array(
+			"method" => "deleteContacts",
+			"params" => array(
+				"orgid" => $param['orgid'],
+				"list" => $param['list']
+			)
+		);
+		return $this->ringotel_middleware_manager->handle($this->curl->post($this->baseUrl, $parameters));
+	}
+
+	/////
+	////
+	///
 	// INTEGRATION
 
 	/**

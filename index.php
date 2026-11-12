@@ -41,6 +41,36 @@ if (!(permission_exists("ringotel") || if_group("superadmin"))) {
 	exit;
 }
 
+//permission split inside the app:
+//  ringotel_extensions - organization, connections, parks, users/extensions and integration
+//  ringotel_contacts   - the Contacts tab (shared organization contacts)
+$can_manage_extensions = permission_exists("ringotel_extensions") || if_group("superadmin");
+$can_manage_contacts = permission_exists("ringotel_contacts") || if_group("superadmin");
+if (!$can_manage_extensions) {
+	if ($can_manage_contacts) {
+		//contacts only: render the contacts module and nothing else
+		$application_directory = pathinfo(__dir__)['basename'];
+		require_once __DIR__ . "/resources/contacts_module.php";
+		require_once "resources/footer.php";
+		exit;
+	}
+	echo "access denied";
+	exit;
+}
+
+//add / edit / delete inside the app (server side these are enforced in service.php;
+//here the controls a user cannot use are hidden through body classes + CSS)
+$can_add = permission_exists("ringotel_extension_add") || if_group("superadmin");
+$can_edit = permission_exists("ringotel_extension_edit") || if_group("superadmin");
+$can_delete = permission_exists("ringotel_extension_delete") || if_group("superadmin");
+$body_classes = array();
+if (!$can_add) { $body_classes[] = 'ringotel-no-add'; }
+if (!$can_edit) { $body_classes[] = 'ringotel-no-edit'; }
+if (!$can_delete) { $body_classes[] = 'ringotel-no-delete'; }
+if (!empty($body_classes)) {
+	echo "<script>document.body.classList.add('" . implode("','", $body_classes) . "');</script>\n";
+}
+
 $language = new text;
 $text = $language->get();
 
@@ -109,6 +139,9 @@ echo '	<div id="not_exist_organization" class="jumbotron" style="display: none;b
 echo '	  <p class="lead">Organization</p>	';
 echo '	  <hr>	';
 echo '	  <p>Use Admin Shell to create your own connection for organization.</p>	';
+if (!$can_add) {
+	echo '	  <p style="color: #a66;">You do not have permission to create the organization. Ask an administrator with the "ringotel_extension_add" permission.</p>	';
+}
 echo '	  <p class="lead">	';
 echo '		<button type="button" class="btn btn-primary btn-lg" data-toggle="modal" data-target="#createOrgModal">';
 echo '			<span id="create_org_text">Create</span>';
@@ -140,6 +173,13 @@ echo '    	<a class="nav-item nav-link" id="nav-integration-tab" style="cursor: 
 echo '				';
 echo '			<h5 class="card-title" style="font-weight: 400;padding: 0.65rem 0rem 0rem 0rem;border-bottom: 1px solid #80808045;">Integration</h5>';
 echo '		</a> ';
+
+// Contacts tab (own permission: ringotel_contacts)
+if ($can_manage_contacts) {
+	echo '    	<a class="nav-item nav-link" id="nav-contacts-tab" style="cursor: pointer;padding: 0.5rem 1rem 0.5rem 0.2rem;">';
+	echo '			<h5 class="card-title" style="font-weight: 400;padding: 0.65rem 0rem 0rem 0rem;border-bottom: 1px solid #80808045;">Contacts</h5>';
+	echo '		</a> ';
+}
 echo '  </div> ';
 echo '</nav> ';
 echo '<div class="tab-content" id="nav-tabContent"> ';
@@ -289,6 +329,7 @@ echo '		</div>';
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 echo '		</div> ';
+
 echo '		</div> ';
 echo '  	<div class="tab-pane show active" id="nav-integration" role="tabpanel" aria-labelledby="nav-integration-tab" style="margin: 10px 0px;display: none;">';
 
@@ -308,6 +349,16 @@ echo '  	<div class="tab-pane show active" id="nav-integration" role="tabpanel" 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 echo '		</div> ';
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////	CONTACTS	////////////////////////////////// CONTACTS ////////////////////////////////// CONTACTS /////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+if ($can_manage_contacts) {
+	echo '  	<div class="tab-pane show active" id="nav-contacts" role="tabpanel" aria-labelledby="nav-contacts-tab" style="margin: 10px 0px;display: none;">';
+	require_once __DIR__ . "/resources/contacts_module.php";
+	echo '		</div> ';
+}
+
 echo '</div>';
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1115,6 +1166,19 @@ echo "		#createUserModal #exist_extensions tr > th:nth-child(3),";
 echo "		#createUserModal #exist_extensions tr > td:nth-child(3) { display: table-cell !important; width: auto; white-space: nowrap; text-align: left; }";
 echo "		#createUserModal #exist_extensions tr > :nth-child(5) { width: 40%; }";
 echo "	}";
+// Hide the add / edit / delete controls the current user may not use (see the permission block at the top)
+echo "	body.ringotel-no-add [data-target='#createOrgModal'], body.ringotel-no-add #create_organization,";
+echo "	body.ringotel-no-add [data-target='#createConnectionModal'], body.ringotel-no-add #create_connect_button,";
+echo "	body.ringotel-no-add #create_parks_modal_button, body.ringotel-no-add #create_users_button,";
+echo "	body.ringotel-no-add #integration_create, body.ringotel-no-add #manage_numbers_activate_button { display: none !important; }";
+echo "	body.ringotel-no-edit [id^='editConnectModal_button_'], body.ringotel-no-edit .edit_user,";
+echo "	body.ringotel-no-edit .reSyncAllNames, body.ringotel-no-edit .reSyncAllPassword, body.ringotel-no-edit .reSyncPassword,";
+echo "	body.ringotel-no-edit .resetPassword, body.ringotel-no-edit .activateUser, body.ringotel-no-edit .deactivateUser,";
+echo "	body.ringotel-no-edit #parks_update, body.ringotel-no-edit #parks_save, body.ringotel-no-edit .sms_trunk_save,";
+echo "	body.ringotel-no-edit #packageid_switcher_container { display: none !important; }";
+echo "	body.ringotel-no-delete #delete_organization, body.ringotel-no-delete .delete_connect, body.ringotel-no-delete .delete_user,";
+echo "	body.ringotel-no-delete .detachUser, body.ringotel-no-delete .sms_trunk_delete, body.ringotel-no-delete #manageNumbersModalDisable { display: none !important; }";
+echo "	body.ringotel-no-edit.ringotel-no-delete .options_user, body.ringotel-no-edit.ringotel-no-delete .user_card_options { display: none !important; }";
 echo '</style>';
 
 ?>
@@ -2539,11 +2603,18 @@ echo '</style>';
 		// clear event listeners
 		$('.detachUser').off('click');
 		// Bind Event Listener [Delete User] 
-		$(".detachUser").on('click', (function (el) {
+		$(".detachUser").on('click', (async function (el) {
 			const id = el.currentTarget.getAttribute('data-id');
 			const userid = el.currentTarget.getAttribute('data-userid');
 			const branchid = el.currentTarget.getAttribute('data-branch');
 			const orgid = $('#delete_organization').attr('data-account') || ORG_ID;
+			const confirmNumber = $('#user_card_' + id).attr('data-number') || '';
+			const confirmed = await confirmRingotelAction({
+				title: 'Remove user',
+				message: `Remove the Ringotel user from extension <b>${escapeText(confirmNumber)}</b>?`,
+				confirmLabel: 'Remove'
+			});
+			if (!confirmed) return;
 			const data = {
 				id,
 				userid,
@@ -2780,7 +2851,18 @@ echo '</style>';
 		// clear event listeners
 		$('.delete_user').off('click');
 		// Bind Event Listener [Delete User] 
-		$(".delete_user").on('click', (function (el) {
+		$(".delete_user").on('click', (async function (el) {
+			// confirm first
+			const confirmId = el.currentTarget.getAttribute('data');
+			const confirmType = $(el.currentTarget).attr('data-type-code');
+			const confirmNumber = $('#user_card_' + confirmId).attr('data-number') || '';
+			const confirmName = $('#user_card_' + confirmId + ' h5.card-title').first().text().trim();
+			const confirmed = await confirmRingotelAction({
+				title: confirmType === 'PARK' ? 'Delete park' : 'Delete extension',
+				message: `Delete ${confirmType === 'PARK' ? 'park' : 'extension'} <b>${escapeText(confirmNumber)}</b>${confirmName && confirmName !== confirmNumber ? ' (' + escapeText(confirmName) + ')' : ''} from Ringotel?<br>The user is removed from Ringotel and signed out of the app. The FusionPBX extension itself is not touched.`,
+				confirmLabel: 'Delete'
+			});
+			if (!confirmed) return;
 			// fade out text
 			$('.create_extensions_text').fadeOut(300);
 			// get options from element
@@ -3097,9 +3179,16 @@ echo '</style>';
 		// clear event listeners
 		$('#myimage').off('click');
 		// Bind Event Listener [Delete Connection] 
-		$(".delete_connect").on('click', (function (el) {
+		$(".delete_connect").on('click', (async function (el) {
 			const branchId = el.currentTarget.getAttribute('data');
 			const orgId = el.currentTarget.getAttribute('data-account') || ORG_ID;
+			const confirmName = $('#connect_card_' + branchId).attr('data-name') || '';
+			const confirmed = await confirmRingotelAction({
+				title: 'Delete connection',
+				message: `Delete connection <b>${escapeText(confirmName)}</b> from Ringotel?<br>Every Ringotel user and park on this connection is removed with it. This cannot be undone.`,
+				confirmLabel: 'Delete connection'
+			});
+			if (!confirmed) return;
 			$('#create_connect_button').attr('disabled', true);
 			$('#create_users_button').attr('disabled', true);
 			$('#delete_connect_' + branchId).fadeOut(300);
@@ -3347,7 +3436,14 @@ echo '</style>';
 	}));
 
 	// Delete Organization
-	$("#delete_organization").on('click', (function () {
+	$("#delete_organization").on('click', (async function () {
+		const confirmName = $('#organization_name').text().trim();
+		const confirmed = await confirmRingotelAction({
+			title: 'Delete organization',
+			message: `Delete organization <b>${escapeText(confirmName)}</b> from Ringotel?<br>All of its connections, users, parks and contacts are deleted with it. This cannot be undone.`,
+			confirmLabel: 'Delete organization'
+		});
+		if (!confirmed) return;
 		$('#create_connect_button').attr('disabled', true);
 		$('#create_users_button').attr('disabled', true);
 		$('#delete_organization').fadeOut(300);
@@ -4482,24 +4578,85 @@ echo '</style>';
 
 	$('#footer').fadeOut();
 
+	////// Confirmation MODAL for destructive actions (delete organization / connection / extension, detach) //////
+	const escapeText = (value) => String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+
+	$('body').append(`
+		<div class="modal hide fade" id="ringotelConfirmModal" tabindex="-1" role="dialog" aria-labelledby="ringotelConfirmModalLabel" aria-hidden="true" style="display: none;">
+			<div class="modal-dialog modal-dialog-centered" role="document">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title" id="ringotelConfirmModalLabel">Please confirm</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+					<div class="modal-body" style="width: auto;">
+						<div id="ringotel_confirm_message"></div>
+					</div>
+					<div class="modal-footer">
+						<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+						<button id="ringotel_confirm_button" class="btn btn-danger" role="button" style="color: white;min-width: 9rem;">Delete</button>
+					</div>
+				</div>
+			</div>
+		</div>`);
+
+	// returns a Promise<boolean>: true when the user confirmed
+	const confirmRingotelAction = ({ title, message, confirmLabel = 'Delete', danger = true }) => new Promise((resolve) => {
+		const $modal = $('#ringotelConfirmModal');
+		let decided = false;
+		$('#ringotelConfirmModalLabel').text(title || 'Please confirm');
+		$('#ringotel_confirm_message').html(message || '');
+		$('#ringotel_confirm_button')
+			.text(confirmLabel)
+			.removeClass('btn-primary btn-danger')
+			.addClass(danger ? 'btn-danger' : 'btn-primary')
+			.off('click')
+			.on('click', () => {
+				decided = true;
+				$modal.modal('hide');
+				resolve(true);
+			});
+		$modal.off('hidden.bs.modal').on('hidden.bs.modal', () => {
+			if (!decided) resolve(false);
+		});
+		$modal.modal('show');
+	});
+
 	// [Init] Check command
 	getOrganization();
 
 	// Nav Event Listeners
 
-	const tabSwitcher = () => {
-		$('#nav-org-tab').animate({ width: 'toggle' }, 300);
-		$('#nav-org').animate({ height: 'toggle' }, 300);
+	// panes: nav-org (default), nav-integration, nav-contacts
+	let ACTIVE_PANE = 'nav-org';
+	const showPane = (pane) => {
+		if (ACTIVE_PANE === pane || $('#' + pane).length === 0) return;
+		const from = ACTIVE_PANE;
+		ACTIVE_PANE = pane;
+		// the Organization title and the back arrow swap only when leaving or returning to the org pane
+		const swapOrgTab = (from === 'nav-org' || pane === 'nav-org');
+		if (swapOrgTab) $('#nav-org-tab').animate({ width: 'toggle' }, 300);
+		$('#' + from).animate({ height: 'toggle' }, 300);
 		setTimeout(() => {
-			$('#nav-org-tab-back').animate({ width: 'toggle' }, 300);
-			$('#nav-integration').animate({ height: 'toggle' }, 300);
+			if (swapOrgTab) $('#nav-org-tab-back').animate({ width: 'toggle' }, 300);
+			$('#' + pane).animate({ height: 'toggle' }, 300);
 		}, 300);
 	};
 	$('#nav-integration-tab').on('click', (function () {
-		tabSwitcher();
+		showPane('nav-integration');
+	}));
+	$('#nav-contacts-tab').on('click', (function () {
+		showPane('nav-contacts');
 	}));
 	$('#nav-org-tab-back').on('click', (function () {
-		tabSwitcher();
+		showPane('nav-org');
 	}));
 
 </script>

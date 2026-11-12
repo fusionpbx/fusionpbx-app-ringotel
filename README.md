@@ -52,6 +52,10 @@ The Ringotel Feature Side App integrates with FusionPBX to help administrators:
     
 *   **Call Parks**: Enable and manage call parking functionality directly within the Ringotel environmen.
 
+*   **Contacts**: Manage the organization's shared contacts (the "Manage contacts" list in the Ringotel portal). Contacts created here appear in the contact book of every Ringotel user in the organization. Contacts have their own tab and their own permission. Contacts can be selected individually or all at once for bulk edit (organization, position, department), bulk delete, CSV export, and there is a CSV import using the same column headings as the Ringotel portal; every bulk action asks for confirmation.
+
+**Permissions**: `ringotel` opens the app. `ringotel_extensions` (default: superadmin, admin) lets a user see the organization, connections, parks, users/extensions and integration. Changes there need, in addition, `ringotel_extension_add` (create organization / connection / parks / extensions / integration), `ringotel_extension_edit` (edit users, connections, parks, integration, activate/deactivate, resync, reset password) or `ringotel_extension_delete` (delete organization, connection, users, integration). All three default to superadmin only; grant them to other groups in Group Manager. Deleting an organization, connection or extension asks for confirmation. Controls a user may not use are hidden, and the server refuses the call regardless. `ringotel_contacts` (default: superadmin) covers the Contacts tab. A user with `ringotel` and `ringotel_contacts` only sees the contacts.
+
 This streamlines user management for those using both FusionPBX and Ringotel.
 
 **In Integration tab, we currently have the Bandwidth integration feature. We may add more options later, or you can add new ones yourself.**

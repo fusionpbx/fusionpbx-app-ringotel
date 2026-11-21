@@ -114,6 +114,15 @@ echo "</style>";
     // the method and target to inject
     if ('<?php echo boolval($reject_ringotel) ?>') {
 
+
+        // escape values coming from the Ringotel API before they are inserted as HTML
+        const ringotelEscape = (value) => String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
         const getOrganizationId = async () => await $.ajax({
         		url: "/app/<?php echo $application_directory; ?>/service.php?method=get_organization",
         		type: "get",
@@ -122,8 +131,8 @@ echo "</style>";
         		const { result } = JSON.parse(response.replaceAll("\\", ""));
                 return result?.id;
             });
-        
-        const getRingotelUsers = async (orgid) => 
+
+        const getRingotelUsers = async (orgid) =>
             await $.ajax({
         		url: "/app/<?php echo $application_directory; ?>/service.php?method=get_users",
         		type: "get",
@@ -135,8 +144,7 @@ echo "</style>";
         		const { result } = JSON.parse(response.replaceAll("\\", ""));
                 return result;
         	});
-        
-        
+
         function showExtPopover(event) {
             const popover = event.currentTarget.querySelector('.popover-content');
             popover.style.display = 'flex';
@@ -158,7 +166,7 @@ echo "</style>";
                     return k;
                 }
             }).filter(el => el)[0];
-        
+
             // Loading For Rows For Current Column
             [...document.getElementById('<?php echo $target_id; ?>').parentNode.parentNode.children].map((td, k) => {
                     if (k != 0) {
@@ -197,7 +205,7 @@ echo "</style>";
                     extension['extension_exists'] = ext?.extension_exists || null;
                     extension['devs'] = ext?.devs || null;
                     extension['info'] = ext?.info || null;
-                
+
                     return extension;
                 });
             } else {
@@ -225,16 +233,16 @@ echo "</style>";
                                 ext_f += '          <div class="popover-content">';
                                 ext_f += '              <div style="display: flex;flex-direction: row;align-items: center;">';
                                 ext_f += '                   <div style="padding-right: 0.25rem;">Username:</div>';
-                                ext_f += '                   <div>'+(ext_data.username||'-')+'</div>';
+                                ext_f += '                   <div>'+ringotelEscape(ext_data.username||'-')+'</div>';
                                 ext_f += '              </div>';
                                 ext_f += '              <div style="display: flex;flex-direction: row;align-items: center;">';
                                 ext_f += '                   <div style="padding-right: 0.25rem;">Type:</div>';
-                                ext_f += '                   <div>'+ext_data.type+'</div>';
+                                ext_f += '                   <div>'+ringotelEscape(ext_data.type)+'</div>';
                                 ext_f += '              </div>';
                                 if (ext_data?.info?.email) {
                                     ext_f += '              <div style="display: flex;flex-direction: row;align-items: center;">';
                                     ext_f += '                   <div style="padding-right: 0.25rem;">Email:</div>';
-                                    ext_f += '                   <div>'+ext_data.info.email+'</div>';
+                                    ext_f += '                   <div>'+ringotelEscape(ext_data.info.email)+'</div>';
                                     ext_f += '              </div>';  
                                 }
                                 if (Array.isArray(ext_data?.devs)) {
@@ -242,20 +250,20 @@ echo "</style>";
                                         if (device?.ua) {
                                             ext_f += '              <div style="display: flex;flex-direction: row;align-items: center;">';
                                             ext_f += '                   <div style="padding-right: 0.25rem;">Device:</div>';
-                                            ext_f += '                   <div>'+device.ua+'</div>';
+                                            ext_f += '                   <div>'+ringotelEscape(device.ua)+'</div>';
                                             ext_f += '              </div>';
                                         }
                                         if (device?.ip) {
                                             ext_f += '              <div style="display: flex;flex-direction: row;align-items: center;">';
                                             ext_f += '                   <div style="padding-right: 0.25rem;">IP:</div>';
-                                            ext_f += '                   <div>'+device.ip+'</div>';
+                                            ext_f += '                   <div>'+ringotelEscape(device.ip)+'</div>';
                                             ext_f += '              </div>';
                                         }
-                                    };  
+                                    };
                                 }
                                 ext_f += '          </div>';
                                 ext_f += `      <div style="text-align: center;margin-left: 0.2rem;" class="ringotel_app" data-id="${ext_data.id}" data-org-id="${ext_data.orgid}" data-branch-id="${ext_data.branchid}">`;
-                                ext_f +=            (ext_data?.name||ext_data?.username)
+                                ext_f +=            ringotelEscape(ext_data?.name||ext_data?.username)
                                 ext_f += '      </div>';
                                 ext_f += '  </div>';
                                 ext_f += '</td>';
@@ -291,7 +299,7 @@ echo "</style>";
             return new Promise((resolve, reject) => {
                 $.ajax({
 				    url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_user",
-				    type: "get",
+				    type: "post",
 				    cache: true,
 				    data: {
 				    	id: userId,
@@ -312,7 +320,7 @@ echo "</style>";
             // modal_close(); list_action_set('delete_extension'); list_form_submit('form_list');
             var	checked = false;
             var inputs = document.getElementsByTagName('input');
-            var usersData = []; 
+            var usersData = [];
             for (var i = 0, max = inputs.length; i < max; i++) {
             	if (inputs[i].type === 'checkbox' && inputs[i].checked == true && Boolean(inputs[i].parentNode.className.indexOf('switch'))) {
             		checked = true;
@@ -336,15 +344,15 @@ echo "</style>";
             if (Array.isArray(requestPromises) && requestPromises?.length > 0) {
                 Promise.all(requestPromises)
                     .then(results => {
-                        list_action_set('delete_extension_voicemail'); 
+                        list_action_set('delete_extension_voicemail');
                         list_form_submit('form_list');
                     })
                     .catch(error => {
                         console.error('Error fetching data:', error);
                     });
             } else {
-                modal_close(); 
-                list_action_set('delete_extension_voicemail'); 
+                modal_close();
+                list_action_set('delete_extension_voicemail');
                 list_form_submit('form_list');
             }
         }

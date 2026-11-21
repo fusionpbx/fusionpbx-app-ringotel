@@ -338,9 +338,9 @@ echo '			  <div class="input-group-prepend">';
 echo '			    <span class="input-group-text" id="basic-addon1">Domain name</span>';
 echo '			  </div>';
 $default_domain_unique_name = get_less_than_30(explode('.', $_SESSION['domain_name'])[0], $settings->get('ringotel', 'domain_name_postfix', '-ringotel'));
-echo '			  <input type="text" class="form-control" id="domain_unique_name" placeholder="Unique Organization Domain" aria-label="Unique Organization Domain" value=' . $default_domain_unique_name . '>';
+echo '			  <input type="text" class="form-control" id="domain_unique_name" placeholder="Unique Organization Domain" aria-label="Unique Organization Domain" value="' . escape($default_domain_unique_name) . '">';
 echo '			  <div class="input-group-append">';
-echo '			    <span class="input-group-text" id="basic-addon2">'.($settings->get('ringotel', 'domain_name_postfix', '-ringotel')).'</span>';
+echo '			    <span class="input-group-text" id="basic-addon2">' . escape($settings->get('ringotel', 'domain_name_postfix', '-ringotel')) . '</span>';
 echo '			</div>';
 echo '	      </div>';
 
@@ -402,7 +402,7 @@ echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
 echo '			    <div class="input-group-text" id="basic-addon1">Domain or IP address</div>';
 echo '			  </div>';
-echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value=' . $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) . '>';
+echo '			  <input type="text" class="form-control" id="connection_domain" placeholder="Domain or IP address" aria-label="Domain or IP address" value="' . escape($_SESSION['domain_name'] . ':' . $settings->get('ringotel', 'ringotel_organization_port', '5070')) . '">';
 echo '			</div>';
 echo '			<div class="input-group mb-3">';
 echo '			  <div class="input-group-prepend">';
@@ -1121,6 +1121,15 @@ echo '</style>';
 
 <script>
 	let ORG_ID = '';
+
+	// escape values before they are inserted into the DOM as HTML
+	const htmlEscape = (value) => String(value ?? '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+
 	////// Edit User MODAL //////
 	const modalEditUser = ({ id, accountid, domain, name, email, extension, sip_password, sip_username, auth_name, mobile, created }) => {
 		return (
@@ -1144,49 +1153,49 @@ echo '</style>';
 											<div id="user_name_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${name ? '' : 'opacity: 0;'}">
 												Display name
 											</div>
-											<input id="user_name_ec_input_${id}" name="user_name_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control user_name_ec_input"  placeholder="Display name" aria-label="Display name" value="${name || ''}">
+											<input id="user_name_ec_input_${id}" name="user_name_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control user_name_ec_input"  placeholder="Display name" aria-label="Display name" value="${htmlEscape(name)}">
 										</div>
 
 										<div id="email_ec_${id}" class="email_ec paddingBottomEc">
 											<div id="email_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${email ? '' : 'opacity: 0;'}">
 												User email
 											</div>
-											<input id="email_ec_input_${id}" name="email_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control email_ec_input"  placeholder="User email" aria-label="User email" value="${email || ''}">
+											<input id="email_ec_input_${id}" name="email_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control email_ec_input"  placeholder="User email" aria-label="User email" value="${htmlEscape(email)}">
 										</div>
 
 										<div id="extension_ec_${id}" class="extension_ec paddingBottomEc">
 											<div id="extension_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${extension ? '' : 'opacity: 0;'}">
 												PBX extension
 											</div>
-											  <input id="extension_ec_input_${id}" name="extension_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control extension_ec_input" placeholder="PBX extension" aria-label="PBX extension" value="${extension || ''}">
+											  <input id="extension_ec_input_${id}" name="extension_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control extension_ec_input" placeholder="PBX extension" aria-label="PBX extension" value="${htmlEscape(extension)}">
 										</div>
 
 										<div id="sip_password_ec_${id}" class="sip_password_ec paddingBottomEc">
 											<div id="sip_password_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${sip_password ? '' : 'opacity: 0;'}">
 												SIP password
 											</div>
-											  <input id="sip_password_ec_input_${id}" name="sip_password_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="password" class="form-control sip_password_ec_input" placeholder="SIP password" aria-label="SIP password" value="${sip_password || ''}">
+											  <input id="sip_password_ec_input_${id}" name="sip_password_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="password" class="form-control sip_password_ec_input" placeholder="SIP password" aria-label="SIP password" value="${htmlEscape(sip_password)}">
 										</div>
 
 										<div id="sip_username_ec_${id}" class="sip_username_ec paddingBottomEc">
 											<div id="sip_username_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${sip_username ? '' : 'opacity: 0;'}">
 												SIP username
 											</div>
-											  <input id="sip_username_ec_input_${id}" name="sip_username_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control sip_username_ec_input" placeholder="SIP username" aria-label="SIP username" value="${sip_username || ''}">
+											  <input id="sip_username_ec_input_${id}" name="sip_username_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control sip_username_ec_input" placeholder="SIP username" aria-label="SIP username" value="${htmlEscape(sip_username)}">
 										</div>
 
 										<div id="auth_name_ec_${id}" class="auth_name_ec paddingBottomEc">
 											<div id="auth_name_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${auth_name ? '' : 'opacity: 0;'}">
 												Authorization name
 											</div>
-											  <input id="auth_name_ec_input_${id}" name="auth_name_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control auth_name_ec_input" placeholder="Authorization name" aria-label="Authorization name" value="${auth_name || ''}">
+											  <input id="auth_name_ec_input_${id}" name="auth_name_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control auth_name_ec_input" placeholder="Authorization name" aria-label="Authorization name" value="${htmlEscape(auth_name)}">
 										</div>
 
 										<div id="mobile_ec_${id}" class="mobile_ec paddingBottomEc">
 											<div id="mobile_ec_input_text_${id}" style="transition: all 1s;-moz-transition: all 1s;-webkit-transition: all 1s;${mobile ? '' : 'opacity: 0;'}">
 												Mobile
 											</div>
-											  <input id="mobile_ec_input_${id}" name="mobile_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control mobile_ec_input" placeholder="Mobile" aria-label="Mobile" value="${mobile || ''}">
+											  <input id="mobile_ec_input_${id}" name="mobile_ec_input" style="border: 0;border-bottom: 1px solid #80808063;border-radius: 0;" type="text" class="form-control mobile_ec_input" placeholder="Mobile" aria-label="Mobile" value="${htmlEscape(mobile)}">
 										</div>
 
 									</div>
@@ -1944,7 +1953,7 @@ echo '</style>';
 				$('#create_inter_loading').fadeIn();
 				$.ajax({
 					url: "/app/<?php echo $application_directory; ?>/service.php?method=create_integration",
-					type: "get",
+					type: "post",
 					cache: true,
 					data: { profileid },
 					success: function (response) {
@@ -2033,7 +2042,7 @@ echo '</style>';
 												$destinations = $db->select($sql, $parameters);
 												unset($sql, $db, $parameters);
 												foreach ($destinations as $dest) {
-													echo '<option value="' . $dest['destination_number'] . '">' . $dest['destination_number'] . '</option>';
+													echo '<option value="' . escape($dest['destination_number']) . '">' . escape($dest['destination_number']) . '</option>';
 												}
 												?>
 											</select>
@@ -2408,7 +2417,7 @@ echo '</style>';
 			const profileid = $('#delete_organization').attr('data-account');
 			$.ajax({
 				url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_integration",
-				type: "get",
+				type: "post",
 				cache: true,
 				data: { profileid },
 				success: function (response) {
@@ -2578,15 +2587,15 @@ echo '</style>';
 	};
 
 	const ExistsExtensionTemplate = ({ extension, extension_uuid, effective_caller_id_name, effective_caller_id_number, voicemail_mail_to }) => {
-		const prefill = firstEmail(voicemail_mail_to).replace(/"/g, '&quot;');
+		const prefill = htmlEscape(firstEmail(voicemail_mail_to));
 		return (`
 			<tr id="extension_line_${extension}">
 			  <th style="vertical-align: middle;display: flex;flex-direction: column;border: 0;" scope="row">
 				<input name="create" class="extension_column" id="extension_${extension_uuid}" data-uuid="${extension_uuid}" type="checkbox" aria-label="select" style="transform: scale(1.25);margin-bottom: 0.2rem;">
 			  </th>
 			  <td style="vertical-align: middle;font-size: 11pt;">${extension}</td>
-			  <td style="vertical-align: middle;font-size: 11pt;">${effective_caller_id_name}</td>
-			  <td style="vertical-align: middle;font-size: 11pt;">${effective_caller_id_number}</td>
+			  <td style="vertical-align: middle;font-size: 11pt;">${htmlEscape(effective_caller_id_name)}</td>
+			  <td style="vertical-align: middle;font-size: 11pt;">${htmlEscape(effective_caller_id_number)}</td>
 			  <td style="vertical-align: middle;font-size: 11pt;padding: 0.5rem;">
 				<input name="email" class="form-control ext_email" id="ext_email_${extension_uuid}" data-uuid="${extension_uuid}" type="email" value="${prefill}" style="line-height: 1rem;height: 1.75rem;padding: 0.5rem;" placeholder="provide the email..."></input>
 			  </td>
@@ -2642,7 +2651,7 @@ echo '</style>';
 								<span class="reSyncPassword" style="color: #2196f3;cursor: pointer;padding: 8px;;opacity: 0.75;" alt="Resync Password" data-id="${id}" data-userid="${other?.userid || ''}" data-branch="${branchid}" data-extension="${extension}">
 									<svg fill="#000000" width="15px" height="15px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path d="M370.72 133.28C339.458 104.008 298.888 87.962 255.848 88c-77.458.068-144.328 53.178-162.791 126.85-1.344 5.363-6.122 9.15-11.651 9.15H24.103c-7.498 0-13.194-6.807-11.807-14.176C33.933 94.924 134.813 8 256 8c66.448 0 126.791 26.136 171.315 68.685L463.03 40.97C478.149 25.851 504 36.559 504 57.941V192c0 13.255-10.745 24-24 24H345.941c-21.382 0-32.09-25.851-16.971-40.971l41.75-41.749zM32 296h134.059c21.382 0 32.09 25.851 16.971 40.971l-41.75 41.75c31.262 29.273 71.835 45.319 114.876 45.28 77.418-.07 144.315-53.144 162.787-126.849 1.344-5.363 6.122-9.15 11.651-9.15h57.304c7.498 0 13.194 6.807 11.807 14.176C478.067 417.076 377.187 504 256 504c-66.448 0-126.791-26.136-171.315-68.685L48.97 471.03C33.851 486.149 8 475.441 8 454.059V320c0-13.255 10.745-24 24-24z"/></svg>
 								</span>
-								<span class="resetPassword" data-toggle="modal" data-target="#resetPasswordModal" data-id="${id}" data-branch="${branchid}" data-extension="${extension}" data-email="${other?.info?.email || other?.email || ''}">
+								<span class="resetPassword" data-toggle="modal" data-target="#resetPasswordModal" data-id="${id}" data-branch="${branchid}" data-extension="${extension}" data-email="${htmlEscape(other?.info?.email || other?.email)}">
 								  <button type="button" class="btn btn-secondary" data-toggle="tooltip" data-placement="right" title="Reset password" style="
 										margin: 0;
 										padding:  0;
@@ -2685,11 +2694,11 @@ echo '</style>';
 		}
 
 		return (`
-			<div class="card user_card" style="width: 14rem;${extensionExists ? '' : 'filter: opacity(0.65) blur(0.45px);border: 1px solid rgb(183 0 0 / 26%);'}"  id="user_card_${id}" data-id="${id}" data-branch-id="${branchid}" data-branch-name="${branchname}" data-type-code="${TYPE_CODE}" data-number="${extension.replace('park+*', '')}" data-extension-exist="${extensionExists ? true : ''}">
+			<div class="card user_card" style="width: 14rem;${extensionExists ? '' : 'filter: opacity(0.65) blur(0.45px);border: 1px solid rgb(183 0 0 / 26%);'}"  id="user_card_${id}" data-id="${id}" data-branch-id="${branchid}" data-branch-name="${htmlEscape(branchname)}" data-type-code="${TYPE_CODE}" data-number="${htmlEscape(extension.replace('park+*', ''))}" data-extension-exist="${extensionExists ? true : ''}">
 				<div class="card-body card-body-p" style="padding: 1rem 1rem 0.5rem 1rem;">
 					<div style="display: flex; flex-direction: row;align-items: center;justify-content: space-between;">
 						<h5 class="card-title" id="user_name" style="overflow: hidden;text-overflow: ellipsis;text-wrap: nowrap;font-weight: 200;font-size: 12.5pt;align-items: center;color: #007bff;margin: 0rem;">
-							${name || extension}
+							${htmlEscape(name || extension)}
 						</h5>
 						<div id="user_card_options_${id}" data="${id}" data-account="${branchid}" data-type-code="${TYPE_CODE}" class="user_card_options" style="position: absolute;right: -2rem;top: 2.5rem;background: white;box-shadow: rgba(0, 0, 0, 0.15) 0px 0px 15px 3px;z-index: 1;border-radius: 2px;display:none;">
 							<div style="display: flex;flex-direction: column;align-items: start;justify-content: space-between;">
@@ -2716,11 +2725,11 @@ echo '</style>';
 					</div>
 					<div>
 						<p class="card-title" id="user_name" style="font-weight: 500;align-items: center;margin-bottom: 0.25rem;">
-							${domain}
+							${htmlEscape(domain)}
 						</p>
 						<div style='display:flex;flex-direction: row;'>
 							<p class="card-text" id="user_domain" style="font-family: monospace;font-weight: 200;margin-bottom: 0rem;font-size: 10pt;">
-								${extension}
+								${htmlEscape(extension)}
 							</p>
 							${extensionExists ? '' : '<div style="bottom: 0;right: 0;font-size: 8pt;padding:  0.25rem;font-weight: bold;filter: none !important;">(Not Exist)</div>'}
 						</div>
@@ -2794,7 +2803,7 @@ echo '</style>';
 			// DELETE USER
 			$.ajax({
 				url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_user",
-				type: "get",
+				type: "post",
 				cache: true,
 				data: {
 					id: userId,
@@ -3062,7 +3071,7 @@ echo '</style>';
 
 	const ConnectionTemplate = ({ id, accountid, name, domain, address, created }, modalEdit) => {
 		return (`
-		 <div class="card connection" style="width: 18rem;" id="connect_card_${id}" data-id="${id}" data-name="${name}">
+		 <div class="card connection" style="width: 18rem;" id="connect_card_${id}" data-id="${id}" data-name="${htmlEscape(name)}">
 			   <div class="card-body card-body-p" style="padding: 1rem 1rem 0.5rem 1rem;">
 				<div style="display: flex; flex-direction: row;align-items: center;justify-content: space-between;">
 					<h5 class="card-title" id="connect_name" style="font-weight: 200;font-size: 14pt;align-items: center;color: #007bff;margin: 0rem;overflow: hidden;text-overflow: ellipsis;text-wrap: nowrap;">${name}</h5>
@@ -3084,8 +3093,8 @@ echo '</style>';
 						Deleting...
 					</span>
 				</div>
-				<p class="card-title" id="connect_name" style="font-weight: 500;align-items: center;">${domain}</p>
-				<p class="card-text" id="connect_domain" style="font-family: monospace;font-weight: 700;">${address}</p>
+				<p class="card-title" id="connect_name" style="font-weight: 500;align-items: center;">${htmlEscape(domain)}</p>
+				<p class="card-text" id="connect_domain" style="font-family: monospace;font-weight: 700;">${htmlEscape(address)}</p>
 				<p class="card-text"><small class="text-muted" id="connect_created">${'Created: ' + new Date(created).toLocaleDateString()}</small></p>
 		   </div>
 		   ${modalEdit}
@@ -3107,7 +3116,7 @@ echo '</style>';
 			// DELETE CONNECTION
 			$.ajax({
 				url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_branch",
-				type: "get",
+				type: "post",
 				cache: true,
 				data: {
 					id: branchId,
@@ -3198,10 +3207,10 @@ echo '</style>';
 					// Clear users_selector_branch_for_parks for Parks Create Modale window
 					$('#users_selector_branch_for_parks')[0].innerHTML = '';
 
-					// create Connections selector 
+					// create Connections selector
 					result.map(async (item) => {
-						$('#users_selector_branch').append(`<option id="users_selector_branch_${item.id}" data-account="${item.accountid}" data-branch="${item.id}" data-branch-name="${item.name}">${item.name} - ${item.address}</option>`);
-						$('#users_selector_branch_for_parks').append(`<option id="users_selector_branch_${item.id}" data-account="${item.accountid}" data-branch="${item.id}" data-branch-name="${item.name}">${item.name} - ${item.address}</option>`);
+						$('#users_selector_branch').append(`<option id="users_selector_branch_${item.id}" data-account="${item.accountid}" data-branch="${item.id}" data-branch-name="${htmlEscape(item.name)}">${htmlEscape(item.name)} - ${htmlEscape(item.address)}</option>`);
+						$('#users_selector_branch_for_parks').append(`<option id="users_selector_branch_${item.id}" data-account="${item.accountid}" data-branch="${item.id}" data-branch-name="${htmlEscape(item.name)}">${htmlEscape(item.name)} - ${htmlEscape(item.address)}</option>`);
 					});
 
 					// GET ALL USERS, PARKS AND EXTENSIONS AND UPDATE THEIR ENTRY SPOTS WITH ELEMENTS
@@ -3248,8 +3257,8 @@ echo '</style>';
 	const getOrganization = () => {
 		$('#integration_create').attr('disabled', true);
 		// Set init Values
-		$('#domain_unique_name').val('<?php echo $default_domain_unique_name ?>');
-		$('#connection_domain').val('<?php echo $_SESSION['domain_name'] . ':' . ($settings->get('ringotel', 'ringotel_organization_port', '5070')) ?>');
+		$('#domain_unique_name').val(<?php echo json_encode($default_domain_unique_name, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>);
+		$('#connection_domain').val(<?php echo json_encode($_SESSION['domain_name'] . ':' . $settings->get('ringotel', 'ringotel_organization_port', '5070'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>);
 		$('#maxregs').val('1');
 
 		return $.ajax({
@@ -3320,7 +3329,7 @@ echo '</style>';
 			$('#create_org_loading').fadeIn();
 			$.ajax({
 				url: "/app/<?php echo $application_directory; ?>/service.php?method=create_organization",
-				type: "get",
+				type: "post",
 				cache: true,
 				data: {
 					domain: domain_unique_name,
@@ -3356,7 +3365,7 @@ echo '</style>';
 		// DELETE ORGANIZAITION
 		$.ajax({
 			url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_organization",
-			type: "get",
+			type: "post",
 			cache: true,
 			data: {
 				id: orgid,
@@ -3396,7 +3405,7 @@ echo '</style>';
 			$('.create_connect_loading').fadeIn(300);
 			$.ajax({
 				url: "/app/<?php echo $application_directory; ?>/service.php?method=create_branch",
-				type: "get",
+				type: "post",
 				cache: true,
 				data: {
 					orgid,
@@ -3505,7 +3514,7 @@ echo '</style>';
 
 				$.ajax({
 					url: "/app/<?php echo $application_directory; ?>/service.php?method=update_parks_with_updated_settings",
-					type: "get",
+					type: "post",
 					cache: true,
 					data,
 					success: function (response) {
@@ -4350,7 +4359,7 @@ echo '</style>';
 					} else {
 						$.ajax({
 							url: "/app/<?php echo $application_directory; ?>/service.php?method=delete_user",
-							type: "get",
+							type: "post",
 							cache: true,
 							data: {
 								id,
@@ -4385,7 +4394,7 @@ echo '</style>';
 		$('.reSyncAllPassword').off('click');
 		// Bind Event Listener [Delete User]
 		$(".reSyncAllPassword").on('click', (function (el) {
-			// Set Animation For 
+			// Set Animation For
 			$(el.currentTarget).children('svg').css('animation', 'sync 2s infinite');
 
 			// Exist Users List

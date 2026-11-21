@@ -87,7 +87,34 @@ $valid_methods = [
     'update_extension_name'
 ];
 
-$integration = in_array($object_method, $valid_methods) ? 'INTEGRATION' : null;
+//methods that change state on the Ringotel server, they must not be reachable by GET
+$state_changing_methods = [
+    'create_organization', 'delete_organization',
+    'create_branch', 'delete_branch',
+    'create_users', 'delete_user', 'update_user',
+    'resync_names', 'resync_password', 'detach_user',
+    'update_branch_with_default_settings', 'update_branch_with_updated_settings',
+    'update_organization_with_default_settings', 'update_parks_with_updated_settings',
+    'activate_user', 'deactivate_user', 'reset_user_password', 'switch_organization_mode',
+    'create_integration', 'delete_integration',
+    'create_sms_trunk', 'update_sms_trunk', 'delete_sms_trunk',
+    'update_extension_name'
+];
+
+//reject a state changing method requested with GET, so it cannot be triggered by an
+//image tag, a link or any other cross site navigation (CSRF)
+if (in_array($object_method, $state_changing_methods, true) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    echo "access denied";
+    exit;
+}
+
+//reject a request that positively claims to originate from another site (CSRF)
+if (!token::same_origin()) {
+    echo "access denied";
+    exit;
+}
+
+$integration = in_array($object_method, $valid_methods, true) ? 'INTEGRATION' : null;
 
 if (!empty($integration)) {
 
